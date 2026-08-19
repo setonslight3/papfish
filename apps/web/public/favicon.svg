@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Papfish">
+  <rect width="64" height="64" rx="14" fill="#0b1120" />
+  <rect x="6" y="6" width="52" height="52" rx="12" fill="#38bdf8" />
+  <path d="M22 46V18h12a9 9 0 0 1 0 18h-6v10z" fill="#0b1120" />
+</svg>
