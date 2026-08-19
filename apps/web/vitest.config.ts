@@ -13,6 +13,13 @@ export default defineConfig({
     },
   },
   test: {
+    // Pin the backend: these suites exercise the local storage adapters, so they
+    // must not pick up whatever Supabase credentials happen to be in .env.
+    env: {
+      VITE_SUPABASE_URL: '',
+      VITE_SUPABASE_ANON_KEY: '',
+      VITE_ENABLE_LIVE_EXPLORER: 'true',
+    },
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],

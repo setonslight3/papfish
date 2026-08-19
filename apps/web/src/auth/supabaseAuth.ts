@@ -1,4 +1,5 @@
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import { describeBackendError } from '@/lib/errors';
 import type { AuthAdapter, AuthUser, SignUpResult } from './types';
 
 function toUser(user: User | null | undefined): AuthUser | null {
@@ -34,7 +35,7 @@ export class SupabaseAuthAdapter implements AuthAdapter {
       password,
       options: { data: { display_name: displayName } },
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(describeBackendError(error, 'Could not create the account'));
     return {
       user: toUser(data.user),
       pendingConfirmation: !data.session,
@@ -43,7 +44,7 @@ export class SupabaseAuthAdapter implements AuthAdapter {
 
   async signIn(email: string, password: string): Promise<AuthUser> {
     const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(describeBackendError(error, 'Could not sign in'));
     const user = toUser(data.user);
     if (!user) throw new Error('Sign in failed');
     return user;
@@ -51,6 +52,6 @@ export class SupabaseAuthAdapter implements AuthAdapter {
 
   async signOut(): Promise<void> {
     const { error } = await this.supabase.auth.signOut();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(describeBackendError(error, 'Could not sign out'));
   }
 }

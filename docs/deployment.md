@@ -63,17 +63,21 @@ already correct for this monorepo.
    | Build command | `npm run build` |
    | Output directory | `apps/web/dist` |
 
-3. **Environment Variables** - add both, for *Production*, *Preview* and
-   *Development*:
+3. **Environment Variables.** `apps/web/.env.production` already carries the
+   project URL and anon key, so a fresh deploy works without touching the
+   dashboard. To manage them in Vercel instead, delete that file and add both
+   variables for *Production*, *Preview* and *Development*:
 
    ```
    VITE_SUPABASE_URL=https://<project>.supabase.co
    VITE_SUPABASE_ANON_KEY=<anon key>
    ```
 
-   These are compiled into the bundle at build time, so **after adding or
+   Either way they are compiled into the bundle at build time, so **after
    changing them you must redeploy** (Deployments → ⋯ → Redeploy). Both values
-   are public by design; Row Level Security is what protects the data.
+   are public by design - they ship to every visitor's browser - and Row Level
+   Security is what actually protects the data. The service-role key is the one
+   that must never appear here.
 
    Optional:
 
@@ -88,6 +92,10 @@ already correct for this monorepo.
 
 - The sign-in screen must **not** show a yellow `local mode` badge. If it does,
   the environment variables were missing at build time - add them and redeploy.
+- If registering reports *"The Papfish tables are missing from this Supabase
+  project"*, step 2 has not run yet: paste the migration into the SQL editor.
+- If it reports *"Could not reach the database"*, `VITE_SUPABASE_URL` is wrong
+  or the project is paused.
 - Register an account, then open **Settings**: *Storage backend* should read
   `supabase`.
 - Open **Explore**, play `1.e4` and wait a second: the engine panel should show

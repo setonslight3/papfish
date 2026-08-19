@@ -9,6 +9,7 @@ import type {
   TrainingAttemptRecord,
 } from '@papfish/core';
 import { normalizeStats } from '@papfish/core';
+import { describeBackendError } from '@/lib/errors';
 import type {
   CreateNodeInput,
   CreateRepertoireInput,
@@ -20,9 +21,12 @@ import type {
 
 type Row = Record<string, unknown>;
 
-function fail(context: string, error: { message: string } | null): never | void {
+function fail(context: string, error: { message: string; code?: string } | null): never | void {
   if (error) {
-    throw new Error(`${context}: ${error.message}`);
+    const described = describeBackendError(error, error.message);
+    // Actionable setup problems replace the context entirely; anything else
+    // keeps it, so the failing operation stays identifiable.
+    throw new Error(described === error.message ? `${context}: ${error.message}` : described);
   }
 }
 
