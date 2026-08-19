@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { describeBackendError } from './errors';
 
 describe('describeBackendError', () => {
-  it('explains an unreachable project', () => {
-    expect(describeBackendError(new TypeError('Failed to fetch'), 'x')).toMatch(
-      /Could not reach the database/,
-    );
-    expect(describeBackendError({ message: 'fetch failed' }, 'x')).toMatch(/VITE_SUPABASE_URL/);
+  it('explains an unreachable project, naming the host and the cause', () => {
+    const message = describeBackendError(new TypeError('Failed to fetch'), 'x');
+    expect(message).toMatch(/Could not reach/);
+    expect(message).toMatch(/Failed to fetch/);
+    expect(describeBackendError({ message: 'fetch failed' }, 'x')).toMatch(/never got a reply/);
   });
 
   it('explains a project where the migration has not been run', () => {

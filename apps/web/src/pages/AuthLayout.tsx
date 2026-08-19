@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui';
+import { ConnectionCheck } from '@/components/ConnectionCheck';
 import { useAuth } from '@/auth/AuthProvider';
 
 /** Shared frame for the sign-in and registration screens. */
@@ -36,6 +37,7 @@ export function AuthLayout({
           <div className="mt-5 border-t border-slate-800 pt-4 text-center text-sm text-slate-400">
             {footer}
           </div>
+          <ConnectionCheck />
         </div>
 
         {backend === 'local' ? (
