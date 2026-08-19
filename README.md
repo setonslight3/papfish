@@ -133,11 +133,17 @@ the other's repertoires, moves, attempts or mastery.
 
 ## Deployment
 
-- **Frontend**: any static host (Vercel, Netlify, Cloudflare Pages).
-  Build command `npm run build`, output `apps/web/dist`, SPA fallback to
-  `index.html`.
-- **Database/Auth**: Supabase.
-- **Pipeline**: run locally or as a scheduled job; it needs the service-role key.
+Full walkthrough: **[docs/deployment.md](./docs/deployment.md)**.
+
+- **Frontend: Vercel.** `vercel.json` in the repository root already sets the
+  install/build commands, the `apps/web/dist` output directory, SPA routing and
+  caching headers - import the repo, add `VITE_SUPABASE_URL` and
+  `VITE_SUPABASE_ANON_KEY`, deploy. Those values are inlined at build time, so
+  redeploy after changing them. Any other static host works the same way.
+- **Database/Auth: Supabase.** Run `supabase/migrations/0001_init.sql` in the
+  SQL editor; it creates every table, index, trigger and RLS policy.
+- **Pipeline:** run locally or as a scheduled job; it needs the service-role
+  key, which never goes near the frontend.
 
 The engine is served as a plain asset and runs single-threaded, so no
 cross-origin isolation headers are required.

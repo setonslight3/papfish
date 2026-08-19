@@ -1,0 +1,3 @@
+# Large pipeline inputs/outputs are not needed to build or serve the site.
+tools/pipeline/out
+tools/pipeline/data

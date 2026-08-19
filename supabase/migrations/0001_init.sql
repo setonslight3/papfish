@@ -5,7 +5,8 @@
 -- Opening statistics are shared, read-only reference data: the pipeline writes
 -- them with the service-role key, which bypasses RLS and never reaches a browser.
 
-create extension if not exists "pgcrypto";
+-- gen_random_uuid() is built into PostgreSQL 13+, which every current Supabase
+-- project runs, so no extension is required.
 
 -- ---------------------------------------------------------------------------
 -- Enumerations
@@ -154,17 +155,25 @@ create table if not exists public.repertoire_nodes (
   position_key text not null,
   move_san text not null,
   move_uci text not null,
-  ply integer not null check (ply > 0),
+  ply integer not null,
   opening_name text,
   variation_name text,
   is_user_move boolean not null,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  -- One move can only appear once under a given parent, which is what keeps the
-  -- tree a tree instead of drifting into duplicated branches.
-  constraint repertoire_nodes_unique_move unique nulls not distinct (repertoire_id, parent_node_id, move_san)
+  -- One move can only appear once under a given parent (see the two unique
+  -- indexes below, which also cover the root moves where parent_node_id is null).
+  constraint repertoire_nodes_ply_positive check (ply > 0)
 );
+
+create unique index if not exists repertoire_nodes_unique_child
+  on public.repertoire_nodes (repertoire_id, parent_node_id, move_san)
+  where parent_node_id is not null;
+
+create unique index if not exists repertoire_nodes_unique_root
+  on public.repertoire_nodes (repertoire_id, move_san)
+  where parent_node_id is null;
 
 create index if not exists repertoire_nodes_repertoire_idx on public.repertoire_nodes (repertoire_id);
 create index if not exists repertoire_nodes_parent_idx on public.repertoire_nodes (parent_node_id);

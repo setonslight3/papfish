@@ -222,14 +222,42 @@ export class SupabaseRepository implements PapfishRepository {
     return node;
   }
 
-  async createNodes(_userId: string, inputs: CreateNodeInput[]): Promise<RepertoireNodeRecord[]> {
+  async createNodes(userId: string, inputs: CreateNodeInput[]): Promise<RepertoireNodeRecord[]> {
     if (inputs.length === 0) return [];
     const { data, error } = await this.supabase
       .from('repertoire_nodes')
       .insert(inputs.map(nodeInsert))
       .select();
+
+    // A move can only exist once under a given parent. If another tab (or a
+    // retried request) already stored it, return the existing rows instead of
+    // surfacing a constraint error the user cannot act on.
+    if (error?.code === '23505') {
+      return this.findExistingNodes(userId, inputs);
+    }
     fail('Could not save repertoire moves', error);
     return (data ?? []).map(toNode);
+  }
+
+  private async findExistingNodes(
+    userId: string,
+    inputs: CreateNodeInput[],
+  ): Promise<RepertoireNodeRecord[]> {
+    const repertoireIds = Array.from(new Set(inputs.map((input) => input.repertoireId)));
+    const existing = (
+      await Promise.all(repertoireIds.map((id) => this.listNodes(userId, id)))
+    ).flat();
+
+    return inputs
+      .map((input) =>
+        existing.find(
+          (node) =>
+            node.repertoireId === input.repertoireId &&
+            node.parentNodeId === input.parentNodeId &&
+            node.moveSan === input.moveSan,
+        ),
+      )
+      .filter((node): node is RepertoireNodeRecord => node !== undefined);
   }
 
   async deleteNode(_userId: string, nodeId: string): Promise<void> {
