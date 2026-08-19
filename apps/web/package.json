@@ -7,7 +7,7 @@
     "predev": "node scripts/copy-engine.mjs",
     "dev": "vite",
     "prebuild": "node scripts/copy-engine.mjs",
-    "build": "tsc --noEmit && vite build",
+    "build": "npx tsc --noEmit && npx vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -35,6 +35,7 @@
     "jsdom": "^30.0.1",
     "stockfish": "^18.0.8",
     "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
     "vite": "^8.2.1",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.11"
