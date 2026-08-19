@@ -8,6 +8,7 @@
     "dev": "vite",
     "prebuild": "node scripts/copy-engine.mjs",
     "build": "npx tsc --noEmit && npx vite build",
+    "postbuild": "node scripts/mirror-dist.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
