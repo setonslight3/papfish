@@ -1,0 +1,35 @@
+{
+  "name": "papfish",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Papfish - personal chess opening repertoire and memory trainer",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @papfish/web",
+    "build": "npm run build -w @papfish/web",
+    "preview": "npm run preview -w @papfish/web",
+    "test": "npm run test -w @papfish/core && npm run test -w @papfish/web",
+    "test:core": "npm run test -w @papfish/core",
+    "test:web": "npm run test -w @papfish/web",
+    "typecheck": "npm run typecheck -w @papfish/core && npm run typecheck -w @papfish/web && npm run typecheck -w @papfish/pipeline",
+    "lint": "eslint .",
+    "pipeline:openings": "npm run openings -w @papfish/pipeline",
+    "pipeline:stats": "npm run stats -w @papfish/pipeline",
+    "verify:rls": "npm run verify:rls -w @papfish/pipeline"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

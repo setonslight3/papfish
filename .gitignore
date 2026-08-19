@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-ssr/
+build/
+coverage/
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+.DS_Store
+.vite/
+.turbo/
+dev-dist/
+tools/pipeline/out/
+apps/web/public/data/opening-stats.local.json
+apps/web/public/engine/
