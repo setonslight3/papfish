@@ -1,0 +1,22 @@
+{
+  "name": "@papfish/pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "openings": "tsx src/build-openings.ts",
+    "stats": "tsx src/build-stats.ts",
+    "upload": "tsx src/upload-stats.ts",
+    "typecheck": "tsc --noEmit",
+    "verify:rls": "tsx src/verify-rls.ts"
+  },
+  "dependencies": {
+    "@papfish/core": "*",
+    "@supabase/supabase-js": "^2.112.3",
+    "chess.js": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12"
+  }
+}
