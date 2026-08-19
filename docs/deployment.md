@@ -54,14 +54,21 @@ already correct for this monorepo.
 
 1. **Add New → Project**, import the GitHub repository.
 2. **Root Directory**: leave it at the repository root (`./`). The build
-   installs the npm workspaces and emits `apps/web/dist`, which `vercel.json`
-   already declares:
+   installs the npm workspaces and emits the site to `dist/` at the repository
+   root - the conventional location, so it works whether Vercel reads
+   `vercel.json` or falls back to its own defaults:
 
    | Setting | Value |
    | --- | --- |
    | Install command | `npm install` |
    | Build command | `npm run build` |
-   | Output directory | `apps/web/dist` |
+   | Output directory | `dist` |
+
+   Two things that bite in a workspace repo, both already handled: the web
+   build calls `npx tsc` and `npx vite` rather than the bare binaries, because
+   Vercel does not put the hoisted `node_modules/.bin` on `PATH` for a
+   workspace script; and the output goes to the repository root rather than
+   `apps/web/dist`, so no dashboard override is needed.
 
 3. **Environment Variables.** `apps/web/.env.production` already carries the
    project URL and anon key, so a fresh deploy works without touching the

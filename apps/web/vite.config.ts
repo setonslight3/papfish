@@ -69,5 +69,10 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    // The bundle is emitted to <repo>/dist rather than apps/web/dist so that it
+    // lands where a host looking for the conventional top-level output finds it,
+    // without depending on a dashboard setting being configured correctly.
+    outDir: resolvePath('../../dist'),
+    emptyOutDir: true,
   },
 });

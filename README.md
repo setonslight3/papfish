@@ -135,11 +135,13 @@ the other's repertoires, moves, attempts or mastery.
 
 Full walkthrough: **[docs/deployment.md](./docs/deployment.md)**.
 
-- **Frontend: Vercel.** `vercel.json` in the repository root already sets the
-  install/build commands, the `apps/web/dist` output directory, SPA routing and
-  caching headers - import the repo, add `VITE_SUPABASE_URL` and
-  `VITE_SUPABASE_ANON_KEY`, deploy. Those values are inlined at build time, so
-  redeploy after changing them. Any other static host works the same way.
+- **Frontend: Vercel.** `vercel.json` in the repository root sets the
+  install/build commands, SPA routing and caching headers; the build emits to
+  `dist/` at the repository root, which is where a host looking for the
+  conventional output directory expects it. Import the repo and deploy -
+  `apps/web/.env.production` already carries the Supabase URL and anon key, or
+  set them in the dashboard instead. Either way they are inlined at build time,
+  so redeploy after changing them. Any other static host works the same way.
 - **Database/Auth: Supabase.** Run `supabase/migrations/0001_init.sql` in the
   SQL editor; it creates every table, index, trigger and RLS policy.
 - **Pipeline:** run locally or as a scheduled job; it needs the service-role
