@@ -1,0 +1,826 @@
+<title>Papfish Database Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #f4f6f8;
+    --surface: #ffffff;
+    --surface-sunk: #eef1f5;
+    --ink: #111826;
+    --ink-soft: #46525f;
+    --muted: #6b7783;
+    --line: #dbe1e8;
+    --accent: #0b5fa8;
+    --accent-soft: #e4eefa;
+    --warn-ink: #8a5100;
+    --warn-bg: #fbf1e0;
+    --warn-line: #e7cfa4;
+    --ok-ink: #10693f;
+    --ok-bg: #e4f3ea;
+    --code-bg: #0f1826;
+    --code-ink: #d7e2f0;
+    --code-comment: #7d90a8;
+    --code-key: #7fb8ff;
+    --code-string: #9ad2a3;
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0b1120;
+      --surface: #131c2c;
+      --surface-sunk: #0f1727;
+      --ink: #e8eef7;
+      --ink-soft: #bcc8d8;
+      --muted: #8d9aab;
+      --line: #24304480;
+      --accent: #63b3ff;
+      --accent-soft: #16283f;
+      --warn-ink: #f0c384;
+      --warn-bg: #241c0f;
+      --warn-line: #4a3a1c;
+      --ok-ink: #7fd6a4;
+      --ok-bg: #10251a;
+      --code-bg: #0a121f;
+      --code-ink: #d7e2f0;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0b1120;
+    --surface: #131c2c;
+    --surface-sunk: #0f1727;
+    --ink: #e8eef7;
+    --ink-soft: #bcc8d8;
+    --muted: #8d9aab;
+    --line: #24304480;
+    --accent: #63b3ff;
+    --accent-soft: #16283f;
+    --warn-ink: #f0c384;
+    --warn-bg: #241c0f;
+    --warn-line: #4a3a1c;
+    --ok-ink: #7fd6a4;
+    --ok-bg: #10251a;
+    --code-bg: #0a121f;
+    --code-ink: #d7e2f0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Bricolage Grotesque', 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.1; }
+  h2 { font-size: 1.15rem; line-height: 1.3; }
+  h3 { font-size: 0.95rem; font-weight: 600; }
+  p { margin: 0; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  header .lede {
+    margin-top: 0.85rem;
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    max-width: 34rem;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.25rem; }
+  .chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+
+  .steps { display: flex; flex-direction: column; gap: 2rem; }
+
+  .step { display: grid; grid-template-columns: 2.5rem 1fr; gap: 0 1rem; align-items: start; }
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: var(--radius);
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .step-body { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.3rem; }
+  .step-body > h2 { margin-bottom: -0.2rem; }
+  .step-body p, .step-body li { color: var(--ink-soft); }
+  .step-body ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+
+  code:not(pre code) {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85em;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 0.08em 0.35em;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+
+  .panel {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem 0.6rem 1rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  button.copy {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--surface);
+    background: var(--accent);
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    transition: filter 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+  }
+  button.copy:hover { filter: brightness(1.08); }
+  button.copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.copy[data-state="done"] { background: var(--ok-ink); }
+  button.copy[data-state="manual"] { background: var(--warn-ink); }
+
+  pre {
+    margin: 0;
+    padding: 1rem;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+  }
+  pre.tall { max-height: 26rem; overflow-y: auto; }
+  pre::selection, pre *::selection { background: #2f5d92; }
+
+  .note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    border: 1px solid var(--warn-line);
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    font-size: 0.92rem;
+  }
+  .note strong { font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .table-wrap { overflow-x: auto; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; white-space: nowrap; }
+  td { color: var(--ink-soft); }
+  tr:last-child td { border-bottom: none; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 1.25rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  @media (max-width: 34rem) {
+    .step { grid-template-columns: 1fr; gap: 0.6rem; }
+    .step-num { width: 2.25rem; }
+    pre { font-size: 0.72rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Papfish &middot; one-time setup</p>
+    <h1>Give Papfish a database</h1>
+    <p class="lede">
+      Paste one block of SQL into Supabase, deploy on Vercel, and your repertoires,
+      training history and mastery follow you to any device.
+    </p>
+    <div class="chips">
+      <span class="chip">supabase</span>
+      <span class="chip">postgres + row level security</span>
+      <span class="chip">vercel</span>
+      <span class="chip">~5 minutes</span>
+    </div>
+  </header>
+
+  <section class="steps">
+
+    <article class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h2>Create the project</h2>
+        <p>
+          At <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer">supabase.com/dashboard</a>,
+          create a new project. Pick the region closest to you and save the database
+          password somewhere safe &mdash; you will not need it for Papfish, but you will
+          need it if you ever connect directly.
+        </p>
+        <p>Wait until the project finishes provisioning before the next step.</p>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h2>Run the schema</h2>
+        <p>
+          Open <strong>SQL Editor &rarr; New query</strong>, paste everything below, and press
+          <strong>Run</strong>. It is safe to run more than once &mdash; every statement checks
+          for what already exists.
+        </p>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">0001_init.sql</span>
+            <button class="copy" type="button" data-target="sql">Copy SQL</button>
+          </div>
+          <pre class="tall" id="sql">-- Papfish - Version 1 schema
+--
+-- Every table that holds user data is protected by Row Level Security, and the
+-- policies are written so a user can only ever see rows that belong to them.
+-- Opening statistics are shared, read-only reference data: the pipeline writes
+-- them with the service-role key, which bypasses RLS and never reaches a browser.
+
+-- gen_random_uuid() is built into PostgreSQL 13+, which every current Supabase
+-- project runs, so no extension is required.
+
+-- ---------------------------------------------------------------------------
+-- Enumerations
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'papfish_color') then
+    create type papfish_color as enum ('white', 'black');
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'papfish_rating_bucket') then
+    create type papfish_rating_bucket as enum (
+      'beginner', '1000-1199', '1200-1399', '1400-1599', '1600-1799',
+      '1800-1999', '2000-2199', '2200+', 'masters'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'papfish_time_control') then
+    create type papfish_time_control as enum ('bullet', 'blitz', 'rapid', 'classical', 'all');
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'papfish_verdict') then
+    create type papfish_verdict as enum (
+      'repertoire', 'strong-alternative', 'inaccuracy', 'mistake', 'blunder', 'illegal'
+    );
+  end if;
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Shared helpers
+-- ---------------------------------------------------------------------------
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Profiles
+-- ---------------------------------------------------------------------------
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  display_name text,
+  rating_bucket papfish_rating_bucket not null default '1400-1599',
+  time_control papfish_time_control not null default 'all',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "profiles are readable by their owner" on public.profiles;
+create policy "profiles are readable by their owner"
+  on public.profiles for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "profiles are insertable by their owner" on public.profiles;
+create policy "profiles are insertable by their owner"
+  on public.profiles for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "profiles are updatable by their owner" on public.profiles;
+create policy "profiles are updatable by their owner"
+  on public.profiles for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
+-- Create the profile row automatically when an account is created.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (user_id, display_name)
+  values (new.id, coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1)))
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- Repertoires
+-- ---------------------------------------------------------------------------
+create table if not exists public.repertoires (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 120),
+  color papfish_color not null,
+  opening_code text,
+  opening_name text,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists repertoires_user_idx on public.repertoires (user_id, color);
+
+alter table public.repertoires enable row level security;
+
+drop policy if exists "repertoires are readable by their owner" on public.repertoires;
+create policy "repertoires are readable by their owner"
+  on public.repertoires for select using (auth.uid() = user_id);
+
+drop policy if exists "repertoires are insertable by their owner" on public.repertoires;
+create policy "repertoires are insertable by their owner"
+  on public.repertoires for insert with check (auth.uid() = user_id);
+
+drop policy if exists "repertoires are updatable by their owner" on public.repertoires;
+create policy "repertoires are updatable by their owner"
+  on public.repertoires for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "repertoires are deletable by their owner" on public.repertoires;
+create policy "repertoires are deletable by their owner"
+  on public.repertoires for delete using (auth.uid() = user_id);
+
+drop trigger if exists repertoires_set_updated_at on public.repertoires;
+create trigger repertoires_set_updated_at
+  before update on public.repertoires
+  for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- Repertoire nodes (branching move tree)
+-- ---------------------------------------------------------------------------
+create table if not exists public.repertoire_nodes (
+  id uuid primary key default gen_random_uuid(),
+  repertoire_id uuid not null references public.repertoires (id) on delete cascade,
+  parent_node_id uuid references public.repertoire_nodes (id) on delete cascade,
+  fen text not null,
+  position_key text not null,
+  move_san text not null,
+  move_uci text not null,
+  ply integer not null,
+  opening_name text,
+  variation_name text,
+  is_user_move boolean not null,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  -- One move can only appear once under a given parent (see the two unique
+  -- indexes below, which also cover the root moves where parent_node_id is null).
+  constraint repertoire_nodes_ply_positive check (ply > 0)
+);
+
+create unique index if not exists repertoire_nodes_unique_child
+  on public.repertoire_nodes (repertoire_id, parent_node_id, move_san)
+  where parent_node_id is not null;
+
+create unique index if not exists repertoire_nodes_unique_root
+  on public.repertoire_nodes (repertoire_id, move_san)
+  where parent_node_id is null;
+
+create index if not exists repertoire_nodes_repertoire_idx on public.repertoire_nodes (repertoire_id);
+create index if not exists repertoire_nodes_parent_idx on public.repertoire_nodes (parent_node_id);
+create index if not exists repertoire_nodes_position_idx on public.repertoire_nodes (position_key);
+
+alter table public.repertoire_nodes enable row level security;
+
+-- Node access is derived from the owning repertoire, so a user can never read
+-- or write a node that hangs off somebody else's repertoire.
+drop policy if exists "nodes are readable by the repertoire owner" on public.repertoire_nodes;
+create policy "nodes are readable by the repertoire owner"
+  on public.repertoire_nodes for select
+  using (exists (
+    select 1 from public.repertoires r
+    where r.id = repertoire_nodes.repertoire_id and r.user_id = auth.uid()
+  ));
+
+drop policy if exists "nodes are insertable by the repertoire owner" on public.repertoire_nodes;
+create policy "nodes are insertable by the repertoire owner"
+  on public.repertoire_nodes for insert
+  with check (exists (
+    select 1 from public.repertoires r
+    where r.id = repertoire_nodes.repertoire_id and r.user_id = auth.uid()
+  ));
+
+drop policy if exists "nodes are updatable by the repertoire owner" on public.repertoire_nodes;
+create policy "nodes are updatable by the repertoire owner"
+  on public.repertoire_nodes for update
+  using (exists (
+    select 1 from public.repertoires r
+    where r.id = repertoire_nodes.repertoire_id and r.user_id = auth.uid()
+  ))
+  with check (exists (
+    select 1 from public.repertoires r
+    where r.id = repertoire_nodes.repertoire_id and r.user_id = auth.uid()
+  ));
+
+drop policy if exists "nodes are deletable by the repertoire owner" on public.repertoire_nodes;
+create policy "nodes are deletable by the repertoire owner"
+  on public.repertoire_nodes for delete
+  using (exists (
+    select 1 from public.repertoires r
+    where r.id = repertoire_nodes.repertoire_id and r.user_id = auth.uid()
+  ));
+
+drop trigger if exists repertoire_nodes_set_updated_at on public.repertoire_nodes;
+create trigger repertoire_nodes_set_updated_at
+  before update on public.repertoire_nodes
+  for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- Opening statistics (shared reference data, written by the pipeline only)
+-- ---------------------------------------------------------------------------
+create table if not exists public.opening_stats (
+  position_key text not null,
+  rating_bucket papfish_rating_bucket not null,
+  time_control papfish_time_control not null,
+  source text not null,
+  total_games integer not null check (total_games >= 0),
+  moves jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now(),
+  primary key (position_key, rating_bucket, time_control, source)
+);
+
+create index if not exists opening_stats_position_idx on public.opening_stats (position_key);
+
+alter table public.opening_stats enable row level security;
+
+drop policy if exists "opening statistics are readable by everyone" on public.opening_stats;
+create policy "opening statistics are readable by everyone"
+  on public.opening_stats for select
+  to anon, authenticated
+  using (true);
+-- No insert/update/delete policy: writes require the service-role key, which
+-- lives in the pipeline environment and never in client code.
+
+-- ---------------------------------------------------------------------------
+-- Training attempts
+-- ---------------------------------------------------------------------------
+create table if not exists public.training_attempts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  repertoire_id uuid references public.repertoires (id) on delete set null,
+  repertoire_node_id uuid references public.repertoire_nodes (id) on delete set null,
+  position_key text not null,
+  color papfish_color not null,
+  attempted_move text not null,
+  expected_move text,
+  engine_evaluation integer,
+  result papfish_verdict not null,
+  response_time_ms integer not null check (response_time_ms >= 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists training_attempts_user_idx on public.training_attempts (user_id, created_at desc);
+create index if not exists training_attempts_position_idx on public.training_attempts (user_id, position_key);
+
+alter table public.training_attempts enable row level security;
+
+drop policy if exists "attempts are readable by their owner" on public.training_attempts;
+create policy "attempts are readable by their owner"
+  on public.training_attempts for select using (auth.uid() = user_id);
+
+drop policy if exists "attempts are insertable by their owner" on public.training_attempts;
+create policy "attempts are insertable by their owner"
+  on public.training_attempts for insert with check (auth.uid() = user_id);
+
+drop policy if exists "attempts are deletable by their owner" on public.training_attempts;
+create policy "attempts are deletable by their owner"
+  on public.training_attempts for delete using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- Mastery
+-- ---------------------------------------------------------------------------
+create table if not exists public.mastery (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  repertoire_id uuid not null references public.repertoires (id) on delete cascade,
+  position_key text not null,
+  color papfish_color not null,
+  attempts integer not null default 0 check (attempts >= 0),
+  correct_attempts integer not null default 0 check (correct_attempts >= 0),
+  mastery_score integer not null default 0 check (mastery_score between 0 and 100),
+  difficulty real not null default 2.5,
+  streak integer not null default 0,
+  average_response_ms integer not null default 0,
+  -- Spaced repetition columns are created now so Version 2 can schedule reviews
+  -- without a migration that touches existing rows.
+  interval_days integer not null default 0,
+  next_review_at timestamptz,
+  last_reviewed_at timestamptz,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, repertoire_id, position_key)
+);
+
+create index if not exists mastery_user_idx on public.mastery (user_id, color);
+create index if not exists mastery_weak_idx on public.mastery (user_id, mastery_score);
+
+alter table public.mastery enable row level security;
+
+drop policy if exists "mastery is readable by its owner" on public.mastery;
+create policy "mastery is readable by its owner"
+  on public.mastery for select using (auth.uid() = user_id);
+
+drop policy if exists "mastery is insertable by its owner" on public.mastery;
+create policy "mastery is insertable by its owner"
+  on public.mastery for insert with check (auth.uid() = user_id);
+
+drop policy if exists "mastery is updatable by its owner" on public.mastery;
+create policy "mastery is updatable by its owner"
+  on public.mastery for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "mastery is deletable by its owner" on public.mastery;
+create policy "mastery is deletable by its owner"
+  on public.mastery for delete using (auth.uid() = user_id);
+
+drop trigger if exists mastery_set_updated_at on public.mastery;
+create trigger mastery_set_updated_at
+  before update on public.mastery
+  for each row execute function public.set_updated_at();</pre>
+        </div>
+        <p>
+          You should see <em>Success. No rows returned</em>. In <strong>Table Editor</strong>
+          all six tables now exist, each marked <em>RLS enabled</em>.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Table</th><th>Holds</th><th>Who can read it</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>profiles</td><td>Display name, preferred rating band and time control</td><td>Its owner</td></tr>
+              <tr><td>repertoires</td><td>One row per repertoire, White or Black</td><td>Its owner</td></tr>
+              <tr><td>repertoire_nodes</td><td>The branching move tree, parent-linked</td><td>The repertoire&rsquo;s owner</td></tr>
+              <tr><td>training_attempts</td><td>Every answer, with the verdict and how long it took</td><td>Its owner</td></tr>
+              <tr><td>mastery</td><td>Per-position score, streak and difficulty</td><td>Its owner</td></tr>
+              <tr><td>opening_stats</td><td>Aggregated human move popularity</td><td>Everyone &mdash; shared reference data, writable only with the service-role key</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h2>Decide how sign-up works</h2>
+        <p>
+          Under <strong>Authentication &rarr; Sign In / Providers &rarr; Email</strong>, the
+          <em>Confirm email</em> switch decides what happens after someone registers.
+        </p>
+        <ul>
+          <li><strong>On</strong> (the default) &mdash; users click a link in their inbox before they can sign in. Safer for a real deployment.</li>
+          <li><strong>Off</strong> &mdash; registering signs you straight in. Much easier while you are testing on your phone.</li>
+        </ul>
+        <p>
+          Then open <strong>Authentication &rarr; URL Configuration</strong> and set
+          <em>Site URL</em> to your Vercel address once you have it, adding the same
+          address under <em>Redirect URLs</em>. Skip this and confirmation links will
+          point at localhost.
+        </p>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h2>Deploy on Vercel</h2>
+        <p>
+          Import the repository at
+          <a href="https://vercel.com/new" target="_blank" rel="noreferrer">vercel.com/new</a>
+          and leave the root directory as it is. <code>vercel.json</code> already sets
+          everything:
+        </p>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">build settings &mdash; already configured</span>
+          </div>
+          <pre>Install command    npm install
+Build command      npm run build
+Output directory   apps/web/dist</pre>
+        </div>
+        <p>
+          The project URL and anon key are already committed in
+          <code>apps/web/.env.production</code>, so the first deploy connects to your
+          database on its own. To manage them in the Vercel dashboard instead, delete
+          that file and add these two variables to Production, Preview and Development:
+        </p>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">environment variables (optional)</span>
+            <button class="copy" type="button" data-target="env">Copy</button>
+          </div>
+          <pre id="env">VITE_SUPABASE_URL=https://urcqnfysobezhzuelofq.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyY3FuZnlzb2Jlemh6dWVsb2ZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNjA1MDYsImV4cCI6MjEwMjczNjUwNn0.Uor9YAt_saS3VlzEcd-VTCUR1b-LzTLB1IRAyk9E-pQ</pre>
+        </div>
+        <p>
+          These are compiled into the bundle, so after changing them use
+          <strong>Deployments &rarr; &hellip; &rarr; Redeploy</strong>.
+        </p>
+        <div class="note">
+          <strong>Never deploy the service_role key.</strong>
+          It bypasses Row Level Security completely. The anon key above is meant to be
+          public &mdash; it reaches every visitor&rsquo;s browser either way, and the policies
+          in step 2 are what keep one account out of another&rsquo;s data. The service-role
+          key belongs only to the statistics pipeline, run from your own machine.
+        </div>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h2>Check it worked</h2>
+        <ul>
+          <li>The sign-in screen shows <strong>no</strong> yellow <em>local mode</em> badge. If it does, the build had no credentials &mdash; redeploy.</li>
+          <li>Register an account, open <strong>Settings</strong>: storage backend reads <code>supabase</code>.</li>
+          <li>Create the Italian Game repertoire, then reload &mdash; it is still there, which means it came back from Postgres.</li>
+          <li>Open <strong>Explore</strong>, play <code>1.e4</code>, wait a second: the engine panel shows a depth readout, so the WebAssembly worker is being served correctly.</li>
+        </ul>
+        <p>Two errors are worth recognising, because Papfish now names them directly:</p>
+        <ul>
+          <li><em>&ldquo;The Papfish tables are missing&rdquo;</em> &mdash; step 2 has not run yet.</li>
+          <li><em>&ldquo;Could not reach the database&rdquo;</em> &mdash; wrong URL, or the project is paused.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h2>Prove the isolation, from your machine</h2>
+        <p>
+          Row Level Security is the whole reason the anon key can be public, so it is
+          worth testing rather than trusting. This signs in as two accounts and asserts
+          that neither can read, rename or delete the other&rsquo;s data:
+        </p>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">terminal</span>
+            <button class="copy" type="button" data-target="rls">Copy</button>
+          </div>
+          <pre id="rls">SUPABASE_URL=https://urcqnfysobezhzuelofq.supabase.co \
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyY3FuZnlzb2Jlemh6dWVsb2ZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNjA1MDYsImV4cCI6MjEwMjczNjUwNn0.Uor9YAt_saS3VlzEcd-VTCUR1b-LzTLB1IRAyk9E-pQ \
+npm run verify:rls</pre>
+        </div>
+        <p>
+          With <em>Confirm email</em> on, create the two accounts first and pass them in
+          as <code>PAPFISH_TEST_A_EMAIL</code> / <code>PAPFISH_TEST_A_PASSWORD</code> and the
+          <code>_B_</code> equivalents.
+        </p>
+      </div>
+    </article>
+
+  </section>
+
+  <footer>
+    <p>The same SQL lives in the repository at <code>supabase/migrations/0001_init.sql</code>, and the long-form walkthrough is in <code>docs/deployment.md</code>.</p>
+    <p>Opening statistics are optional: until the pipeline fills <code>opening_stats</code>, Papfish reads the public Lichess explorer at runtime.</p>
+  </footer>
+</div>
+
+<script>
+  const FALLBACK_NOTE = 'Selected - press copy';
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    return false;
+  }
+
+  function selectElement(element) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  for (const button of document.querySelectorAll('button.copy')) {
+    button.addEventListener('click', async () => {
+      const source = document.getElementById(button.dataset.target);
+      const original = button.textContent;
+      try {
+        const copied = await copyText(source.innerText);
+        if (copied) {
+          button.textContent = 'Copied';
+          button.dataset.state = 'done';
+        } else {
+          selectElement(source);
+          button.textContent = FALLBACK_NOTE;
+          button.dataset.state = 'manual';
+        }
+      } catch (error) {
+        selectElement(source);
+        button.textContent = FALLBACK_NOTE;
+        button.dataset.state = 'manual';
+      }
+      window.setTimeout(() => {
+        button.textContent = original;
+        delete button.dataset.state;
+      }, 2600);
+    });
+  }
+</script>
