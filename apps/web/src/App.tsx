@@ -11,6 +11,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { ExplorePage } from '@/pages/ExplorePage';
 import { RepertoiresPage } from '@/pages/RepertoiresPage';
 import { TrainPage } from '@/pages/TrainPage';
+import { GamesPage } from '@/pages/GamesPage';
 import { ProgressPage } from '@/pages/ProgressPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 
@@ -55,6 +56,7 @@ export function App(): React.JSX.Element {
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/repertoires" element={<RepertoiresPage />} />
               <Route path="/train" element={<TrainPage />} />
+              <Route path="/games" element={<GamesPage />} />
               <Route path="/progress" element={<ProgressPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

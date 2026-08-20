@@ -28,6 +28,8 @@ function masteryFor(repertoireId: string, fen: string, score: number): MasteryRe
     difficulty: 2.5,
     streak: 4,
     averageResponseMs: 2000,
+    intervalDays: 3,
+    nextReviewAt: null,
     lastReviewedAt: null,
     updatedAt: new Date().toISOString(),
   };

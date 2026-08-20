@@ -11,10 +11,13 @@ Do Supabase first - the app needs its URL and anon key at build time.
    database password. Region: whichever is closest to you.
 2. Open **SQL Editor → New query**, paste the whole of
    [`supabase/migrations/0001_init.sql`](../supabase/migrations/0001_init.sql)
-   and press **Run**. It is idempotent, so running it twice is harmless.
+   and press **Run**. Then run
+   [`supabase/migrations/0002_version2.sql`](../supabase/migrations/0002_version2.sql)
+   the same way - it adds imported games and the training-mode column. Both are
+   idempotent, so running them twice is harmless.
 3. Check **Table Editor**: you should see `profiles`, `repertoires`,
-   `repertoire_nodes`, `opening_stats`, `training_attempts` and `mastery`, each
-   marked *RLS enabled*.
+   `repertoire_nodes`, `opening_stats`, `training_attempts`, `mastery`,
+   `imported_games` and `personal_game_positions`, each marked *RLS enabled*.
 4. **Authentication → Providers → Email**: leave email/password enabled.
    - *Confirm email* **on** (default) is the safer choice: users must click a
      link before they can sign in.

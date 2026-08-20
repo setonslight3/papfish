@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { formatSanLine, weakestPositions } from '@papfish/core';
+import { formatSanLine, reviewLoad, studyStreak, weakestPositions } from '@papfish/core';
 import { Badge, Button, EmptyState, Panel, ProgressBar, Spinner, StatTile } from '@/components/ui';
 import { useAuth } from '@/auth/AuthProvider';
 import { useRepertoires } from '@/repertoire/RepertoireProvider';
 import { allCandidates, buildRepertoireViews, summarizeMastery } from '@/repertoire/selectors';
+import { ReviewForecast } from '@/components/charts';
 import { formatRelativeTime } from '@/lib/format';
 
 const VERDICT_LABEL: Record<string, { text: string; tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral' }> = {
@@ -25,7 +26,10 @@ export function DashboardPage(): React.JSX.Element {
     [mastery, nodes, repertoires],
   );
   const summary = useMemo(() => summarizeMastery(views), [views]);
-  const weak = useMemo(() => weakestPositions(allCandidates(views), 5), [views]);
+  const candidates = useMemo(() => allCandidates(views), [views]);
+  const weak = useMemo(() => weakestPositions(candidates, 5), [candidates]);
+  const load = useMemo(() => reviewLoad(candidates), [candidates]);
+  const streak = useMemo(() => studyStreak(attempts), [attempts]);
 
   if (loading) {
     return (
@@ -47,7 +51,7 @@ export function DashboardPage(): React.JSX.Element {
           </p>
         </div>
         <Link to="/train">
-          <Button>Start training</Button>
+          <Button>{load.due + load.failed > 0 ? `Review ${load.due + load.failed} positions` : 'Start training'}</Button>
         </Link>
       </header>
 
@@ -63,11 +67,49 @@ export function DashboardPage(): React.JSX.Element {
         />
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <StatTile label="Overall mastery" value={`${summary.overall}%`} sublabel="across every repertoire" />
         <StatTile label="White mastery" value={`${summary.white}%`} tone="white" sublabel="White repertoires only" />
         <StatTile label="Black mastery" value={`${summary.black}%`} tone="black" sublabel="Black repertoires only" />
+        <StatTile
+          label="Study streak"
+          value={streak.current > 0 ? `${streak.current}d` : '-'}
+          sublabel={streak.longest > 0 ? `longest ${streak.longest}d` : 'train to start one'}
+        />
       </div>
+
+      {candidates.length > 0 ? (
+        <Panel
+          title="Review schedule"
+          actions={
+            <Link to="/train" className="text-xs font-semibold text-sky-400 hover:text-sky-300">
+              Train now
+            </Link>
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <ReviewForecast upcoming={load.upcoming} />
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-1">
+              <li className="flex justify-between gap-3">
+                <span className="text-slate-400">Due now</span>
+                <span className="text-slate-100 tabular-nums">{load.due}</span>
+              </li>
+              <li className="flex justify-between gap-3">
+                <span className="text-slate-400">Failed last time</span>
+                <span className="text-rose-300 tabular-nums">{load.failed}</span>
+              </li>
+              <li className="flex justify-between gap-3">
+                <span className="text-slate-400">Weak</span>
+                <span className="text-amber-300 tabular-nums">{load.weak}</span>
+              </li>
+              <li className="flex justify-between gap-3">
+                <span className="text-slate-400">Never trained</span>
+                <span className="text-emerald-300 tabular-nums">{load.new}</span>
+              </li>
+            </ul>
+          </div>
+        </Panel>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Repertoires">

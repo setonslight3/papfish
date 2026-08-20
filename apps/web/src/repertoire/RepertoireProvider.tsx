@@ -1,13 +1,24 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type {
+  Color,
+  ImportedGameRecord,
   MasteryRecord,
   MoveVerdict,
+  PersonalGamePositionRecord,
   RepertoireNodeRecord,
   RepertoireRecord,
   TrainingAttemptRecord,
+  TrainingMode,
 } from '@papfish/core';
-import { applyAttempt, starterRepertoireByKey } from '@papfish/core';
+import {
+  applyAttempt,
+  buildTree,
+  scheduleReview,
+  starterRepertoireByKey,
+  verdictToRecallScore,
+} from '@papfish/core';
+import { importGamesFromPgn, type ImportOutcome } from './gameImport';
 import { getRepository } from '@/data';
 import { useAuth } from '@/auth/AuthProvider';
 import { useOpeningBook } from '@/hooks/useOpeningBook';
@@ -17,13 +28,14 @@ export interface RecordTrainingInput {
   repertoireId: string;
   nodeId: string | null;
   positionKey: string;
-  color: 'white' | 'black';
+  color: Color;
   attemptedMove: string;
   expectedMove: string | null;
   verdict: MoveVerdict;
   responseTimeMs: number;
   engineEvaluation: number | null;
   engineQuality: number;
+  mode?: TrainingMode;
 }
 
 interface RepertoireContextValue {
@@ -33,12 +45,16 @@ interface RepertoireContextValue {
   nodes: RepertoireNodeRecord[];
   mastery: MasteryRecord[];
   attempts: TrainingAttemptRecord[];
+  games: ImportedGameRecord[];
+  gamePositions: PersonalGamePositionRecord[];
   refresh(): Promise<void>;
   createStarter(starterKey: string): Promise<RepertoireRecord | null>;
   deleteRepertoire(id: string): Promise<void>;
   addMove(repertoireId: string, sanPath: string[], san: string): Promise<void>;
   deleteNode(nodeId: string): Promise<void>;
   recordTraining(input: RecordTrainingInput): Promise<void>;
+  importGames(pgnText: string, aliases: string[]): Promise<ImportOutcome>;
+  deleteGame(gameId: string): Promise<void>;
 }
 
 const RepertoireContext = createContext<RepertoireContextValue | null>(null);
@@ -59,6 +75,8 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
   const [nodes, setNodes] = useState<RepertoireNodeRecord[]>([]);
   const [mastery, setMastery] = useState<MasteryRecord[]>([]);
   const [attempts, setAttempts] = useState<TrainingAttemptRecord[]>([]);
+  const [games, setGames] = useState<ImportedGameRecord[]>([]);
+  const [gamePositions, setGamePositions] = useState<PersonalGamePositionRecord[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -66,6 +84,8 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
       setNodes([]);
       setMastery([]);
       setAttempts([]);
+      setGames([]);
+      setGamePositions([]);
       setLoading(false);
       return;
     }
@@ -73,16 +93,21 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
     setLoading(true);
     setError(null);
     try {
-      const [loadedRepertoires, loadedNodes, loadedMastery, loadedAttempts] = await Promise.all([
-        repository.listRepertoires(user.id),
-        repository.listAllNodes(user.id),
-        repository.listMastery(user.id),
-        repository.listRecentAttempts(user.id, 50),
-      ]);
+      const [loadedRepertoires, loadedNodes, loadedMastery, loadedAttempts, loadedGames, loadedPositions] =
+        await Promise.all([
+          repository.listRepertoires(user.id),
+          repository.listAllNodes(user.id),
+          repository.listMastery(user.id),
+          repository.listRecentAttempts(user.id, 200),
+          repository.listImportedGames(user.id),
+          repository.listGamePositions(user.id),
+        ]);
       setRepertoires(loadedRepertoires);
       setNodes(loadedNodes);
       setMastery(loadedMastery);
       setAttempts(loadedAttempts);
+      setGames(loadedGames);
+      setGamePositions(loadedPositions);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your repertoires');
     } finally {
@@ -153,6 +178,7 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
         engineEvaluation: input.engineEvaluation,
         result: input.verdict,
         responseTimeMs: input.responseTimeMs,
+        mode: input.mode ?? 'train',
       });
 
       const previous =
@@ -168,14 +194,29 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
         engineQuality: input.engineQuality,
       });
 
+      // The scheduler owns the review interval; mastery owns the score.
+      const review = scheduleReview(
+        previous
+          ? {
+              repetitions: previous.streak,
+              easeFactor: previous.difficulty,
+              intervalDays: previous.intervalDays,
+            }
+          : null,
+        verdictToRecallScore(input.verdict, input.responseTimeMs),
+      );
+
       const saved = await repository.upsertMastery(user.id, {
         repertoireId: input.repertoireId,
         positionKey: input.positionKey,
         color: input.color,
         ...updated,
+        difficulty: review.easeFactor,
+        intervalDays: review.intervalDays,
+        nextReviewAt: review.nextReviewAt,
       });
 
-      setAttempts((current) => [attempt, ...current].slice(0, 50));
+      setAttempts((current) => [attempt, ...current].slice(0, 200));
       setMastery((current) => {
         const others = current.filter(
           (record) =>
@@ -187,6 +228,35 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
     [mastery, repository, user],
   );
 
+  const importGames = useCallback(
+    async (pgnText: string, aliases: string[]) => {
+      if (!user) throw new Error('Sign in to import games');
+      const trees = new Map(
+        repertoires.map((repertoire) => [
+          repertoire.id,
+          buildTree(nodes.filter((node) => node.repertoireId === repertoire.id)),
+        ]),
+      );
+      const outcome = await importGamesFromPgn(repository, user.id, pgnText, aliases, {
+        repertoires,
+        trees,
+        book,
+      });
+      await refresh();
+      return outcome;
+    },
+    [book, nodes, refresh, repertoires, repository, user],
+  );
+
+  const deleteGame = useCallback(
+    async (gameId: string) => {
+      if (!user) return;
+      await repository.deleteImportedGame(user.id, gameId);
+      await refresh();
+    },
+    [refresh, repository, user],
+  );
+
   const value = useMemo<RepertoireContextValue>(
     () => ({
       loading,
@@ -195,12 +265,16 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
       nodes,
       mastery,
       attempts,
+      games,
+      gamePositions,
       refresh,
       createStarter,
       deleteRepertoire,
       addMove,
       deleteNode,
       recordTraining,
+      importGames,
+      deleteGame,
     }),
     [
       loading,
@@ -209,12 +283,16 @@ export function RepertoireProvider({ children }: { children: ReactNode }): React
       nodes,
       mastery,
       attempts,
+      games,
+      gamePositions,
       refresh,
       createStarter,
       deleteRepertoire,
       addMove,
       deleteNode,
       recordTraining,
+      importGames,
+      deleteGame,
     ],
   );
 

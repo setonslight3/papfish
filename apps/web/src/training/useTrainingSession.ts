@@ -1,14 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
 import type {
+  AdaptiveItem,
   AttemptClassification,
   Color,
   EngineScore,
   OpponentDecision,
   RepertoireNodeRecord,
   TrainingCandidate,
+  TrainingMode,
+  TrainingSource,
 } from '@papfish/core';
 import {
-  buildTrainingQueue,
   centipawnLoss,
   chooseHumanMove,
   classifyAttempt,
@@ -17,6 +19,7 @@ import {
   getEngineStrengthProfile,
   isLegalSan,
   positionKey,
+  scoreDrill,
   uciToSan,
 } from '@papfish/core';
 import { useEngine } from '@/engine/EngineProvider';
@@ -32,6 +35,12 @@ export type TrainingPhase =
   | 'feedback'
   | 'opponent'
   | 'complete';
+
+export interface SessionOptions {
+  mode?: TrainingMode;
+  /** Speed drills only: milliseconds allowed per position. */
+  timeLimitMs?: number | null;
+}
 
 export interface TrainingProgress {
   index: number;
@@ -62,6 +71,14 @@ export interface TrainingState {
   opponentNote: string | null;
   progress: TrainingProgress;
   engineUnavailable: boolean;
+  mode: TrainingMode;
+  /** Why this position was selected, when the session was built adaptively. */
+  source: TrainingSource | null;
+  timeLimitMs: number | null;
+  /** Epoch milliseconds by which the answer must be in, for drills. */
+  deadlineAt: number | null;
+  timedOut: boolean;
+  drillScore: number;
 }
 
 const IDLE_STATE: TrainingState = {
@@ -76,6 +93,12 @@ const IDLE_STATE: TrainingState = {
   opponentNote: null,
   progress: { index: 0, total: 0, correct: 0, answered: 0 },
   engineUnavailable: false,
+  mode: 'train',
+  source: null,
+  timeLimitMs: null,
+  deadlineAt: null,
+  timedOut: false,
+  drillScore: 0,
 };
 
 /**
@@ -92,40 +115,47 @@ export function useTrainingSession() {
   const { nodes, recordTraining } = useRepertoires();
 
   const [state, setState] = useState<TrainingState>(IDLE_STATE);
-  const queueRef = useRef<TrainingCandidate[]>([]);
+  const queueRef = useRef<AdaptiveItem[]>([]);
   const positionRef = useRef(0);
   const currentRef = useRef<CurrentPosition | null>(null);
   const startedAtRef = useRef(0);
   const progressRef = useRef<TrainingProgress>({ index: 0, total: 0, correct: 0, answered: 0 });
+  const modeRef = useRef<TrainingMode>('train');
+  const timeLimitRef = useRef<number | null>(null);
+  const drillScoreRef = useRef(0);
 
   const engineAvailable = settings.engineEnabled && engineState !== 'error';
 
-  const presentCandidate = useCallback((candidate: TrainingCandidate) => {
-    const current: CurrentPosition = {
-      fen: candidate.fen,
-      sanPath: candidate.sanPath,
-      expectedSan: candidate.node.moveSan,
-      node: candidate.node,
-      repertoireId: candidate.repertoireId,
-      color: candidate.node.ply % 2 === 1 ? 'white' : 'black',
-    };
-    currentRef.current = current;
-    startedAtRef.current = Date.now();
+  const presentCandidate = useCallback(
+    (candidate: TrainingCandidate, source: TrainingSource | null) => {
+      const current: CurrentPosition = {
+        fen: candidate.fen,
+        sanPath: candidate.sanPath,
+        expectedSan: candidate.node.moveSan,
+        node: candidate.node,
+        repertoireId: candidate.repertoireId,
+        color: candidate.node.ply % 2 === 1 ? 'white' : 'black',
+      };
+      currentRef.current = current;
+      startedAtRef.current = Date.now();
 
-    setState({
-      phase: 'waiting',
-      fen: current.fen,
-      sanPath: current.sanPath,
-      orientation: current.color,
-      expectedSan: null,
-      playedSan: null,
-      feedback: null,
-      opponentMove: null,
-      opponentNote: null,
-      progress: { ...progressRef.current },
-      engineUnavailable: !engineAvailable,
-    });
-  }, [engineAvailable]);
+      setState({
+        ...IDLE_STATE,
+        phase: 'waiting',
+        fen: current.fen,
+        sanPath: current.sanPath,
+        orientation: current.color,
+        progress: { ...progressRef.current },
+        engineUnavailable: !engineAvailable,
+        mode: modeRef.current,
+        source,
+        timeLimitMs: timeLimitRef.current,
+        deadlineAt: timeLimitRef.current ? Date.now() + timeLimitRef.current : null,
+        drillScore: drillScoreRef.current,
+      });
+    },
+    [engineAvailable],
+  );
 
   const finish = useCallback(() => {
     currentRef.current = null;
@@ -145,7 +175,7 @@ export function useTrainingSession() {
     }
     positionRef.current += 1;
     progressRef.current = { ...progressRef.current, index: positionRef.current };
-    presentCandidate(next);
+    presentCandidate(next.candidate, next.source);
   }, [finish, presentCandidate]);
 
   /** Continue inside the current line, or fall back to the next queued position. */
@@ -178,26 +208,34 @@ export function useTrainingSession() {
         feedback: null,
         opponentMove: null,
         opponentNote: null,
+        timedOut: false,
+        deadlineAt: timeLimitRef.current ? Date.now() + timeLimitRef.current : null,
         progress: { ...progressRef.current },
       }));
     },
     [nextFromQueue, nodes],
   );
 
+  /**
+   * Run a prepared session. The caller decides *what* to train - adaptive mix,
+   * due reviews, a drill - and this hook runs it.
+   */
   const start = useCallback(
-    (candidates: TrainingCandidate[], size: number) => {
-      const queue = buildTrainingQueue(candidates, { size });
-      queueRef.current = queue;
+    (items: AdaptiveItem[], options: SessionOptions = {}) => {
+      queueRef.current = items;
       positionRef.current = 0;
-      progressRef.current = { index: 0, total: queue.length, correct: 0, answered: 0 };
+      modeRef.current = options.mode ?? 'train';
+      timeLimitRef.current = options.timeLimitMs ?? null;
+      drillScoreRef.current = 0;
+      progressRef.current = { index: 0, total: items.length, correct: 0, answered: 0 };
 
-      if (queue.length === 0) {
-        setState({ ...IDLE_STATE, phase: 'complete' });
+      if (items.length === 0) {
+        setState({ ...IDLE_STATE, phase: 'complete', mode: modeRef.current });
         return;
       }
       positionRef.current = 1;
       progressRef.current.index = 1;
-      presentCandidate(queue[0]);
+      presentCandidate(items[0].candidate, items[0].source);
     },
     [presentCandidate],
   );
@@ -351,9 +389,19 @@ export function useTrainingSession() {
           responseTimeMs,
           engineEvaluation: scores.played ? scoreToCp(scores.played) : null,
           engineQuality: feedback.verdict === 'repertoire' ? 1 : engineQualityFromLoss(loss ?? 0),
+          mode: modeRef.current,
         });
       } catch (error) {
         console.warn('[papfish] could not save the attempt', error);
+      }
+
+      // Drills add a speed component on top of correctness.
+      if (timeLimitRef.current) {
+        drillScoreRef.current += scoreDrill(
+          feedback.verdict,
+          responseTimeMs,
+          timeLimitRef.current,
+        ).score;
       }
 
       setState((previous) => ({
@@ -363,16 +411,77 @@ export function useTrainingSession() {
         expectedSan: current.expectedSan,
         playedSan: san,
         feedback,
+        deadlineAt: null,
+        drillScore: drillScoreRef.current,
         progress: { ...progressRef.current },
       }));
     },
     [evaluateMove, recordTraining, state.phase],
   );
 
+  /**
+   * The drill clock ran out. A position that could not be recalled in time is
+   * a lapse: it is recorded, so the scheduler brings it back sooner.
+   */
+  const timeout = useCallback(async () => {
+    const current = currentRef.current;
+    if (!current || state.phase !== 'waiting') return;
+
+    const responseTimeMs = timeLimitRef.current ?? Date.now() - startedAtRef.current;
+
+    progressRef.current = {
+      ...progressRef.current,
+      answered: progressRef.current.answered + 1,
+    };
+
+    try {
+      await recordTraining({
+        repertoireId: current.repertoireId,
+        nodeId: current.node.id,
+        positionKey: positionKey(current.fen),
+        color: current.color,
+        attemptedMove: '(no move)',
+        expectedMove: current.expectedSan,
+        verdict: 'mistake',
+        responseTimeMs,
+        engineEvaluation: null,
+        engineQuality: 0,
+        mode: modeRef.current,
+      });
+    } catch (error) {
+      console.warn('[papfish] could not save the timeout', error);
+    }
+
+    setState((previous) => ({
+      ...previous,
+      phase: 'feedback',
+      timedOut: true,
+      expectedSan: current.expectedSan,
+      deadlineAt: null,
+      feedback: {
+        verdict: 'mistake',
+        centipawnLoss: null,
+        expectedSan: current.expectedSan,
+        playedSan: '(no move)',
+        bestSan: null,
+        headline: 'Out of time',
+        detail: `The clock ran out. Your repertoire plays ${current.expectedSan} here.`,
+      },
+      progress: { ...progressRef.current },
+    }));
+  }, [recordTraining, state.phase]);
+
   /** Move on from the feedback screen, playing the repertoire move if needed. */
   const advance = useCallback(async () => {
     const current = currentRef.current;
     if (!current) {
+      nextFromQueue();
+      return;
+    }
+
+    // A drill is about recall speed across many positions, not playing a line
+    // out, so it never waits for an opponent reply.
+    if (modeRef.current === 'drill') {
       nextFromQueue();
       return;
     }
@@ -404,10 +513,12 @@ export function useTrainingSession() {
     queueRef.current = [];
     positionRef.current = 0;
     currentRef.current = null;
+    timeLimitRef.current = null;
+    drillScoreRef.current = 0;
     setState(IDLE_STATE);
   }, []);
 
-  return { state, start, submitMove, advance, skip, reset, engineAvailable };
+  return { state, start, submitMove, timeout, advance, skip, reset, engineAvailable };
 }
 
 function scoreToCp(score: EngineScore): number {

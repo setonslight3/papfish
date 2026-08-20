@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chess } from 'chess.js';
 import type { ReactNode } from 'react';
-import { ITALIAN_GAME } from '@papfish/core';
+import { ITALIAN_GAME, buildAdaptiveSession } from '@papfish/core';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { LocalAuthAdapter } from '@/auth/localAuth';
 import { EngineProvider } from '@/engine/EngineProvider';
@@ -67,7 +67,7 @@ describe('training loop', () => {
     expect(candidates.length).toBeGreaterThan(5);
 
     await act(async () => {
-      result.current.session.start(candidates, 3);
+      result.current.session.start(buildAdaptiveSession(candidates, { size: 3 }));
     });
 
     // The answer is not revealed before an attempt is made.
@@ -112,7 +112,7 @@ describe('training loop', () => {
     );
 
     await act(async () => {
-      result.current.session.start(allCandidates(views), 2);
+      result.current.session.start(buildAdaptiveSession(allCandidates(views), { size: 2 }));
     });
 
     const expected = repertoireMoveFor(
@@ -145,7 +145,7 @@ describe('training loop', () => {
     );
 
     await act(async () => {
-      result.current.session.start(allCandidates(views), 2);
+      result.current.session.start(buildAdaptiveSession(allCandidates(views), { size: 2 }));
     });
 
     await act(async () => {
@@ -169,7 +169,7 @@ describe('training loop', () => {
     );
 
     await act(async () => {
-      result.current.session.start(allCandidates(views), 4);
+      result.current.session.start(buildAdaptiveSession(allCandidates(views), { size: 4 }));
     });
 
     const before = result.current.session.state.sanPath.length;

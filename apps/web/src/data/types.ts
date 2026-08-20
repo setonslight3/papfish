@@ -1,7 +1,9 @@
 import type {
   Color,
+  ImportedGameRecord,
   MasteryRecord,
   MoveVerdict,
+  PersonalGamePositionRecord,
   PositionStats,
   ProfileRecord,
   RatingBucket,
@@ -9,6 +11,7 @@ import type {
   RepertoireRecord,
   TimeControl,
   TrainingAttemptRecord,
+  TrainingMode,
 } from '@papfish/core';
 
 export interface CreateRepertoireInput {
@@ -43,6 +46,7 @@ export interface RecordAttemptInput {
   engineEvaluation: number | null;
   result: MoveVerdict;
   responseTimeMs: number;
+  mode: TrainingMode;
 }
 
 export interface UpsertMasteryInput {
@@ -55,6 +59,35 @@ export interface UpsertMasteryInput {
   difficulty: number;
   streak: number;
   averageResponseMs: number;
+  intervalDays: number;
+  nextReviewAt: string | null;
+}
+
+export interface CreateImportedGameInput {
+  source: string;
+  externalGameId: string | null;
+  whitePlayer: string;
+  blackPlayer: string;
+  result: string;
+  playedAt: string | null;
+  pgn: string;
+  openingCode: string | null;
+  openingName: string | null;
+  userColor: Color;
+  inBookPlies: number;
+}
+
+export interface CreateGamePositionInput {
+  importedGameId: string;
+  ply: number;
+  fen: string;
+  positionKey: string;
+  movePlayed: string;
+  expectedMove: string | null;
+  engineEvaluation: number | null;
+  repertoireMatch: boolean;
+  trainingRecommended: boolean;
+  note: string | null;
 }
 
 export interface StatsQuery {
@@ -102,4 +135,16 @@ export interface PapfishRepository {
   upsertMastery(userId: string, input: UpsertMasteryInput): Promise<MasteryRecord>;
 
   getPositionStats(query: StatsQuery): Promise<PositionStats | null>;
+
+  // --- Version 2: imported games -------------------------------------------
+
+  listImportedGames(userId: string, limit?: number): Promise<ImportedGameRecord[]>;
+  createImportedGame(userId: string, input: CreateImportedGameInput): Promise<ImportedGameRecord>;
+  deleteImportedGame(userId: string, gameId: string): Promise<void>;
+
+  listGamePositions(userId: string, gameId?: string): Promise<PersonalGamePositionRecord[]>;
+  createGamePositions(
+    userId: string,
+    inputs: CreateGamePositionInput[],
+  ): Promise<PersonalGamePositionRecord[]>;
 }

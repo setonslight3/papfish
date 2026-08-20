@@ -1,4 +1,5 @@
 import { centipawnLoss } from './evaluation.js';
+import type { RecallScore } from './spaced-repetition.js';
 import type { AttemptClassification, EngineScore, MoveVerdict } from './types.js';
 
 /**
@@ -122,8 +123,8 @@ export function isSuccessfulVerdict(verdict: MoveVerdict): boolean {
   return verdict === 'repertoire';
 }
 
-/** Map a verdict onto the 0-5 recall scale used by the scheduler (V2 will consume this). */
-export function verdictToRecallScore(verdict: MoveVerdict, responseMs: number): number {
+/** Map a verdict onto the 0-5 recall scale the spaced-repetition scheduler reads. */
+export function verdictToRecallScore(verdict: MoveVerdict, responseMs: number): RecallScore {
   switch (verdict) {
     case 'repertoire':
       if (responseMs <= 3000) return 5;

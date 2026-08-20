@@ -9,8 +9,7 @@ Papfish combines human opening popularity, rating-specific move tendencies,
 Stockfish, a personal branching repertoire, and position-level mastery
 tracking, in an installable responsive web app.
 
-**Status: Version 1 complete.** Version 2 (spaced repetition, PGN import,
-personal-game analysis) has not been started - see [Roadmap](#roadmap).
+**Status: Version 2 complete.** See [Roadmap](#roadmap).
 
 ---
 
@@ -30,6 +29,19 @@ personal-game analysis) has not been started - see [Roadmap](#roadmap).
 | Progress | Overall, White and Black mastery, per-opening mastery, weakest branches, training history |
 | PWA | Manifest, icons, service worker, installable, offline caching of static assets |
 
+## What Version 2 adds
+
+| Area | What you get |
+| --- | --- |
+| Spaced repetition | An SM-2 scheduler decides when each position comes back; failures return inside the session, successes stretch out |
+| Adaptive sessions | Every session mixes what is due, what you failed, what is weak, what recurs and something new - never one ranked list |
+| Session types | Adaptive, due reviews, weak positions, new positions, and speed drills against a clock |
+| Speed drills | 15/8/4-second recall with a live clock, per-answer scoring, and timeouts recorded as lapses |
+| PGN import | Paste or upload games from Lichess/Chess.com; multi-game files, annotations and variations handled |
+| Personal-game analysis | Where you left your own repertoire, where the opponent left it, and how deep each game stayed in book |
+| Recommendations | Positions you keep reaching or keep getting wrong, ranked - imports never rewrite your repertoire |
+| Statistics | Accuracy trend, review forecast, mastery distribution, verdict breakdown, colour split, study streak |
+
 ---
 
 ## Quick start
@@ -47,8 +59,9 @@ and is not a security boundary.
 ### Connecting Supabase (the real backend)
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Run `supabase/migrations/0001_init.sql` in the SQL editor. It creates every
-   table, index, trigger and **Row Level Security policy**.
+2. Run `supabase/migrations/0001_init.sql` and then `0002_version2.sql` in the
+   SQL editor. They create every table, index, trigger and **Row Level Security
+   policy**.
 3. Copy `.env.example` to `.env` and fill in:
 
    ```bash
@@ -114,7 +127,7 @@ popularity, and never presents an engine evaluation as popularity.
 ## Testing
 
 ```bash
-npm test          # 127 tests: domain logic, storage, auth, engine, UI flows
+npm test          # 210 tests: domain logic, storage, auth, engine, UI flows
 npm run typecheck # strict TypeScript across all three workspaces
 npm run lint      # ESLint incl. React hooks rules
 npm run build     # type-check + production build + service worker
@@ -155,14 +168,12 @@ cross-origin isolation headers are required.
 ## Roadmap
 
 - **Version 1 - Core opening trainer.** Complete.
-- **Version 2 - Adaptive personal training.** Spaced repetition (the schema
-  already carries `interval_days` / `next_review_at`), weak-position detection,
-  PGN import, personal-game analysis, speed drills.
+- **Version 2 - Adaptive personal training.** Complete.
 - **Version 3 - Advanced platform.** Master-game comparison, middlegame and
   endgame training, deeper analytics.
 
-Version boundaries are deliberate: Version 2 work does not start until
-Version 1 is stable and tested.
+Version boundaries are deliberate: each version is finished and tested before
+the next begins.
 
 ---
 

@@ -186,6 +186,7 @@ export interface TrainingAttemptRecord {
   engineEvaluation: number | null;
   result: MoveVerdict;
   responseTimeMs: number;
+  mode: TrainingMode;
   createdAt: string;
 }
 
@@ -197,11 +198,55 @@ export interface MasteryRecord {
   attempts: number;
   correctAttempts: number;
   masteryScore: number;
+  /** SM-2 ease factor: higher means this position comes easily to this user. */
   difficulty: number;
   streak: number;
   averageResponseMs: number;
+  /** Current spaced-repetition interval in days. */
+  intervalDays: number;
+  /** When this position is next due for review. */
+  nextReviewAt: string | null;
   lastReviewedAt: string | null;
   updatedAt: string;
+}
+
+/** How a training attempt was made, so drills and normal training stay separable. */
+export type TrainingMode = 'train' | 'review' | 'drill' | 'test';
+
+export interface ImportedGameRecord {
+  id: string;
+  userId: string;
+  source: string;
+  externalGameId: string | null;
+  whitePlayer: string;
+  blackPlayer: string;
+  result: string;
+  playedAt: string | null;
+  pgn: string;
+  openingCode: string | null;
+  openingName: string | null;
+  /** Which side the importing user played. */
+  userColor: Color;
+  /** Plies that followed the user's repertoire before the game left it. */
+  inBookPlies: number;
+  createdAt: string;
+}
+
+export interface PersonalGamePositionRecord {
+  id: string;
+  userId: string;
+  importedGameId: string;
+  ply: number;
+  fen: string;
+  positionKey: string;
+  movePlayed: string;
+  expectedMove: string | null;
+  engineEvaluation: number | null;
+  /** True when the move matched the user's repertoire. */
+  repertoireMatch: boolean;
+  trainingRecommended: boolean;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface ProfileRecord {

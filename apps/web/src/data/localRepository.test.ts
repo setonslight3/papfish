@@ -53,6 +53,7 @@ describe('LocalRepository', () => {
       engineEvaluation: null,
       result: 'repertoire',
       responseTimeMs: 1200,
+      mode: 'train',
     });
 
     expect(await repository.listRepertoires(USER_B)).toHaveLength(0);
@@ -107,6 +108,8 @@ describe('LocalRepository', () => {
       difficulty: 2.4,
       streak: 1,
       averageResponseMs: 1800,
+      intervalDays: 1,
+      nextReviewAt: '2026-03-02T00:00:00.000Z',
     };
 
     await repository.upsertMastery(USER_A, input);

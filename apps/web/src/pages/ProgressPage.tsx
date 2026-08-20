@@ -1,6 +1,16 @@
 import { useMemo } from 'react';
-import { formatSanLine, weakestPositions } from '@papfish/core';
+import {
+  accuracyByColor,
+  dailyAccuracy,
+  formatSanLine,
+  masteryDistribution,
+  reviewLoad,
+  studyStreak,
+  verdictBreakdown,
+  weakestPositions,
+} from '@papfish/core';
 import { Badge, Panel, ProgressBar, Spinner, StatTile } from '@/components/ui';
+import { AccuracyTrend, MasteryDistribution, ReviewForecast } from '@/components/charts';
 import { useRepertoires } from '@/repertoire/RepertoireProvider';
 import { allCandidates, buildRepertoireViews, summarizeMastery } from '@/repertoire/selectors';
 import { formatDuration, formatRelativeTime } from '@/lib/format';
@@ -21,6 +31,17 @@ export function ProgressPage(): React.JSX.Element {
     const correct = attempts.filter((attempt) => attempt.result === 'repertoire').length;
     return Math.round((correct / attempts.length) * 100);
   }, [attempts]);
+
+  const trend = useMemo(() => dailyAccuracy(attempts, 14), [attempts]);
+  const streak = useMemo(() => studyStreak(attempts), [attempts]);
+  const colorSplit = useMemo(() => accuracyByColor(attempts), [attempts]);
+  const verdicts = useMemo(() => verdictBreakdown(attempts), [attempts]);
+  const candidates = useMemo(() => allCandidates(views), [views]);
+  const load = useMemo(() => reviewLoad(candidates), [candidates]);
+  const bands = useMemo(
+    () => masteryDistribution(mastery, Math.max(0, candidates.length - mastery.length)),
+    [candidates.length, mastery],
+  );
 
   const medianResponse = useMemo(() => {
     if (attempts.length === 0) return 0;
@@ -50,10 +71,66 @@ export function ProgressPage(): React.JSX.Element {
         <StatTile label="White" value={`${summary.white}%`} tone="white" />
         <StatTile label="Black" value={`${summary.black}%`} tone="black" />
         <StatTile
-          label="Recent accuracy"
-          value={`${accuracy}%`}
-          sublabel={`${attempts.length} recent attempts`}
+          label="Study streak"
+          value={`${streak.current}d`}
+          sublabel={`longest ${streak.longest}d · ${streak.activeDays} active days`}
         />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Accuracy, last 14 days">
+          <AccuracyTrend series={trend} />
+          <p className="mt-3 text-xs text-slate-500">
+            {accuracy}% across your {attempts.length} most recent attempts.
+          </p>
+        </Panel>
+
+        <Panel title="Review forecast">
+          <ReviewForecast upcoming={load.upcoming} />
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">
+            <span>{load.due} due now</span>
+            <span>{load.failed} failed last time</span>
+            <span>{load.new} never trained</span>
+          </div>
+        </Panel>
+
+        <Panel title="Positions by mastery">
+          <MasteryDistribution bands={bands} />
+        </Panel>
+
+        <Panel title="How your answers land">
+          {verdicts.length === 0 ? (
+            <p className="text-sm text-slate-500">No attempts yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {verdicts.map((entry) => (
+                <li key={entry.verdict} className="flex items-center gap-3">
+                  <span className="w-32 shrink-0 text-xs text-slate-400">{entry.verdict}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className={
+                        entry.verdict === 'repertoire' ? 'h-full bg-emerald-500' : 'h-full bg-slate-500'
+                      }
+                      style={{ width: `${entry.share}%` }}
+                    />
+                  </div>
+                  <span className="w-10 text-right text-xs text-slate-300 tabular-nums">
+                    {entry.count}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {colorSplit.map((split) => (
+              <div key={split.color} className="rounded-lg border border-slate-800 p-3">
+                <p className="text-xs tracking-wide text-slate-400 uppercase">{split.color}</p>
+                <p className="text-lg font-semibold text-slate-100 tabular-nums">{split.accuracy}%</p>
+                <p className="text-[11px] text-slate-500">{split.attempts} attempts</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

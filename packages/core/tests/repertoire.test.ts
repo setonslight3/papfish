@@ -170,6 +170,8 @@ function masteryFixture(score: number, attempts: number, streak: number): Master
     difficulty: 2.5,
     streak,
     averageResponseMs: 2000,
+    intervalDays: 0,
+    nextReviewAt: null,
     lastReviewedAt: now,
     updatedAt: now,
   };

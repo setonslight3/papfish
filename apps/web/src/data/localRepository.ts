@@ -1,5 +1,7 @@
 import type {
+  ImportedGameRecord,
   MasteryRecord,
+  PersonalGamePositionRecord,
   PositionStats,
   ProfileRecord,
   RepertoireNodeRecord,
@@ -9,6 +11,8 @@ import type {
 import { DEFAULT_RATING_BUCKET, DEFAULT_TIME_CONTROL, normalizeStats } from '@papfish/core';
 import { createId } from '@/lib/id';
 import type {
+  CreateGamePositionInput,
+  CreateImportedGameInput,
   CreateNodeInput,
   CreateRepertoireInput,
   PapfishRepository,
@@ -25,10 +29,20 @@ interface LocalState {
   nodes: RepertoireNodeRecord[];
   attempts: TrainingAttemptRecord[];
   mastery: MasteryRecord[];
+  games: ImportedGameRecord[];
+  gamePositions: PersonalGamePositionRecord[];
 }
 
 function emptyState(): LocalState {
-  return { profile: null, repertoires: [], nodes: [], attempts: [], mastery: [] };
+  return {
+    profile: null,
+    repertoires: [],
+    nodes: [],
+    attempts: [],
+    mastery: [],
+    games: [],
+    gamePositions: [],
+  };
 }
 
 function read(userId: string): LocalState {
@@ -213,6 +227,7 @@ export class LocalRepository implements PapfishRepository {
         engineEvaluation: input.engineEvaluation,
         result: input.result,
         responseTimeMs: Math.round(input.responseTimeMs),
+        mode: input.mode,
         createdAt: now(),
       };
       state.attempts.unshift(record);
@@ -245,6 +260,8 @@ export class LocalRepository implements PapfishRepository {
         difficulty: input.difficulty,
         streak: input.streak,
         averageResponseMs: Math.round(input.averageResponseMs),
+        intervalDays: input.intervalDays,
+        nextReviewAt: input.nextReviewAt,
         lastReviewedAt: now(),
         updatedAt: now(),
       };
@@ -254,6 +271,99 @@ export class LocalRepository implements PapfishRepository {
       }
       state.mastery.push(record);
       return record;
+    });
+  }
+
+  async listImportedGames(userId: string, limit = 100): Promise<ImportedGameRecord[]> {
+    return read(userId)
+      .games.slice()
+      .sort((a, b) => (b.playedAt ?? b.createdAt).localeCompare(a.playedAt ?? a.createdAt))
+      .slice(0, limit);
+  }
+
+  async createImportedGame(
+    userId: string,
+    input: CreateImportedGameInput,
+  ): Promise<ImportedGameRecord> {
+    return this.mutate(userId, (state) => {
+      const existing = input.externalGameId
+        ? state.games.find((game) => game.externalGameId === input.externalGameId)
+        : undefined;
+
+      const record: ImportedGameRecord = {
+        id: existing?.id ?? createId(),
+        userId,
+        source: input.source,
+        externalGameId: input.externalGameId,
+        whitePlayer: input.whitePlayer,
+        blackPlayer: input.blackPlayer,
+        result: input.result,
+        playedAt: input.playedAt,
+        pgn: input.pgn,
+        openingCode: input.openingCode,
+        openingName: input.openingName,
+        userColor: input.userColor,
+        inBookPlies: input.inBookPlies,
+        createdAt: existing?.createdAt ?? now(),
+      };
+
+      if (existing) {
+        Object.assign(existing, record);
+        // Re-importing a game replaces the positions derived from it.
+        state.gamePositions = state.gamePositions.filter(
+          (position) => position.importedGameId !== existing.id,
+        );
+        return existing;
+      }
+
+      state.games.push(record);
+      return record;
+    });
+  }
+
+  async deleteImportedGame(userId: string, gameId: string): Promise<void> {
+    this.mutate(userId, (state) => {
+      state.games = state.games.filter((game) => game.id !== gameId);
+      state.gamePositions = state.gamePositions.filter(
+        (position) => position.importedGameId !== gameId,
+      );
+    });
+  }
+
+  async listGamePositions(
+    userId: string,
+    gameId?: string,
+  ): Promise<PersonalGamePositionRecord[]> {
+    const positions = read(userId).gamePositions;
+    return gameId ? positions.filter((position) => position.importedGameId === gameId) : positions;
+  }
+
+  async createGamePositions(
+    userId: string,
+    inputs: CreateGamePositionInput[],
+  ): Promise<PersonalGamePositionRecord[]> {
+    return this.mutate(userId, (state) => {
+      const created: PersonalGamePositionRecord[] = [];
+      for (const input of inputs) {
+        const duplicate = state.gamePositions.find(
+          (position) =>
+            position.importedGameId === input.importedGameId && position.ply === input.ply,
+        );
+        if (duplicate) {
+          Object.assign(duplicate, input);
+          created.push(duplicate);
+          continue;
+        }
+        const record: PersonalGamePositionRecord = {
+          id: createId(),
+          userId,
+          createdAt: now(),
+          ...input,
+        };
+        state.gamePositions.push(record);
+        created.push(record);
+      }
+      return created;
     });
   }
 
