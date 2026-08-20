@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RepertoireTreeNode } from '@papfish/core';
 import { STARTER_REPERTOIRES, childrenOf, formatMoveNumber, summarize } from '@papfish/core';
-import { Badge, Button, EmptyState, ErrorNote, Panel, ProgressBar, Spinner } from '@/components/ui';
+import { Badge, Button, EmptyState, ErrorNote, Panel, ProgressBar } from '@/components/ui';
+import { PapfishLoader } from '@/components/brand';
 import { useRepertoires } from '@/repertoire/RepertoireProvider';
 import { buildRepertoireViews } from '@/repertoire/selectors';
 import type { RepertoireView } from '@/repertoire/selectors';
@@ -35,9 +36,7 @@ export function RepertoiresPage(): React.JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-slate-400">
-        <Spinner /> Loading repertoires…
-      </div>
+      <PapfishLoader full={false} label="Loading repertoires" />
     );
   }
 

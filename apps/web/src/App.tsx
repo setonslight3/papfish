@@ -4,7 +4,7 @@ import { EngineProvider } from '@/engine/EngineProvider';
 import { SettingsProvider } from '@/settings/SettingsProvider';
 import { RepertoireProvider } from '@/repertoire/RepertoireProvider';
 import { AppShell } from '@/components/AppShell';
-import { Spinner } from '@/components/ui';
+import { PapfishLoader } from '@/components/brand';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -17,11 +17,7 @@ import { ProgressPage } from '@/pages/ProgressPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 
 function FullPageSpinner(): React.JSX.Element {
-  return (
-    <div className="grid min-h-full place-items-center bg-slate-950">
-      <Spinner className="h-8 w-8" />
-    </div>
-  );
+  return <PapfishLoader label="Casting off…" />;
 }
 
 /** Routes that require an account. */

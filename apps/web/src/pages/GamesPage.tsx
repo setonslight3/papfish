@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import type { ImportedGameRecord, PersonalGamePositionRecord } from '@papfish/core';
 import type { CriticalMoment } from '@papfish/core';
 import { SWING_LABELS, formatSanLine } from '@papfish/core';
-import { Badge, Button, EmptyState, ErrorNote, Panel, Spinner, TextInput } from '@/components/ui';
+import { Badge, Button, EmptyState, ErrorNote, Panel, TextInput } from '@/components/ui';
+import { PapfishLoader } from '@/components/brand';
 import { useAuth } from '@/auth/AuthProvider';
 import { useEngine } from '@/engine/EngineProvider';
 import { getRepository } from '@/data';
@@ -130,9 +131,7 @@ export function GamesPage(): React.JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-slate-400">
-        <Spinner /> Loading your games…
-      </div>
+      <PapfishLoader full={false} label="Loading your games" />
     );
   }
 

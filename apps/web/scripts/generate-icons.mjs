@@ -1,126 +1,75 @@
 /**
- * Generate the PWA icon set.
+ * Generate the favicon and the PWA icon set from the Papfish mark.
  *
- * Icons are drawn programmatically (flat brand mark: a sky rounded square with
- * a navy "P") and written as PNGs, so the repository carries no binary assets
- * that cannot be regenerated. Run with `node scripts/generate-icons.mjs`.
+ * The SVG favicon is written directly. The PNGs need a rasteriser: Playwright
+ * is used when it is installed (`npm i -D playwright`), because it is already
+ * the project's browser tool. Without it the committed PNGs are left alone -
+ * they are checked in precisely so a normal install never needs a browser.
+ *
+ *   node scripts/generate-icons.mjs
  */
-import { deflateSync } from 'node:zlib';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { papfishSvg } from './brand-svg.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outDir = resolve(here, '..', 'public', 'icons');
+const publicDir = resolve(here, '..', 'public');
+const iconDir = resolve(publicDir, 'icons');
 
-const NAVY = [11, 17, 32, 255];
-const SKY = [56, 189, 248, 255];
-
-// 5x7 bitmap for the letter P.
-const GLYPH = [
-  '11110',
-  '10001',
-  '10001',
-  '11110',
-  '10000',
-  '10000',
-  '10000',
+const PNG_ICONS = [
+  // Maskable icons are padded so Android can crop them to any shape.
+  { file: 'icon-192.png', size: 192, plate: 'squircle', padding: 0 },
+  { file: 'icon-512.png', size: 512, plate: 'squircle', padding: 0 },
+  { file: 'icon-maskable-512.png', size: 512, plate: 'squircle', padding: 0.2 },
 ];
 
-function crc32(buffer) {
-  let crc = ~0;
-  for (const byte of buffer) {
-    crc ^= byte;
-    for (let i = 0; i < 8; i += 1) {
-      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
-    }
-  }
-  return ~crc >>> 0;
+mkdirSync(iconDir, { recursive: true });
+
+// The tab icon: the compact drawing, on a plate so it reads on any tab colour.
+writeFileSync(resolve(publicDir, 'favicon.svg'), `${papfishSvg({ detailed: false, plate: 'squircle' })}\n`);
+console.log('[papfish] favicon.svg');
+
+// Keep the boot screen's artwork in step with everything else.
+const indexPath = resolve(here, '..', 'index.html');
+const splash = papfishSvg({ detailed: true, plate: 'circle', spinning: true }).replace(
+  'width="64" height="64"',
+  'width="112" height="112"',
+);
+const html = readFileSync(indexPath, 'utf8').replace(
+  /<!-- papfish:splash -->[\s\S]*?<!-- \/papfish:splash -->/,
+  `<!-- papfish:splash -->\n        ${splash}\n        <!-- /papfish:splash -->`,
+);
+writeFileSync(indexPath, html);
+console.log('[papfish] boot screen in index.html');
+
+let chromium;
+try {
+  ({ chromium } = await import('playwright'));
+} catch {
+  console.warn('[papfish] playwright not installed - keeping the committed PNG icons.');
+  process.exit(0);
 }
 
-function chunk(type, data) {
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([length, body, crc]);
+// The environment may pin a browser outside Playwright's own download cache.
+const executablePath = process.env.PAPFISH_CHROMIUM ?? '/opt/pw-browsers/chromium';
+const browser = await chromium
+  .launch({ executablePath })
+  .catch(() => chromium.launch());
+const page = await browser.newPage();
+
+for (const icon of PNG_ICONS) {
+  const svg = papfishSvg({ detailed: true, plate: icon.plate, padding: icon.padding });
+  await page.setViewportSize({ width: icon.size, height: icon.size });
+  await page.setContent(
+    `<body style="margin:0"><div style="width:${icon.size}px;height:${icon.size}px">${svg.replace(
+      'width="64" height="64"',
+      'width="100%" height="100%"',
+    )}</div></body>`,
+  );
+  const buffer = await page.screenshot({ omitBackground: true });
+  writeFileSync(resolve(iconDir, icon.file), buffer);
+  console.log(`[papfish] ${icon.file} (${icon.size}px)`);
 }
 
-function png(size, pixels) {
-  const header = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // truecolour with alpha
-  const raw = Buffer.alloc((size * 4 + 1) * size);
-  for (let y = 0; y < size; y += 1) {
-    raw[y * (size * 4 + 1)] = 0; // no filter
-    for (let x = 0; x < size; x += 1) {
-      const [r, g, b, a] = pixels(x, y);
-      const offset = y * (size * 4 + 1) + 1 + x * 4;
-      raw[offset] = r;
-      raw[offset + 1] = g;
-      raw[offset + 2] = b;
-      raw[offset + 3] = a;
-    }
-  }
-  return Buffer.concat([
-    header,
-    chunk('IHDR', ihdr),
-    chunk('IDAT', deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
-function drawIcon(size, { maskable }) {
-  const pad = maskable ? Math.round(size * 0.18) : Math.round(size * 0.08);
-  const inner = size - pad * 2;
-  const radius = Math.round(inner * 0.22);
-
-  const glyphHeight = Math.round(inner * 0.5);
-  const cell = Math.max(1, Math.round(glyphHeight / GLYPH.length));
-  const glyphW = cell * GLYPH[0].length;
-  const glyphH = cell * GLYPH.length;
-  const glyphX = Math.round((size - glyphW) / 2);
-  const glyphY = Math.round((size - glyphH) / 2);
-
-  return (x, y) => {
-    const insideX = x - pad;
-    const insideY = y - pad;
-    const inBox =
-      insideX >= 0 &&
-      insideY >= 0 &&
-      insideX < inner &&
-      insideY < inner &&
-      roundedCorner(insideX, insideY, inner, radius);
-
-    if (!inBox) return NAVY;
-
-    const gx = Math.floor((x - glyphX) / cell);
-    const gy = Math.floor((y - glyphY) / cell);
-    if (gy >= 0 && gy < GLYPH.length && gx >= 0 && gx < GLYPH[0].length && GLYPH[gy][gx] === '1') {
-      return NAVY;
-    }
-    return SKY;
-  };
-}
-
-function roundedCorner(x, y, size, radius) {
-  const cx = x < radius ? radius : x > size - radius ? size - radius : x;
-  const cy = y < radius ? radius : y > size - radius ? size - radius : y;
-  const dx = x - cx;
-  const dy = y - cy;
-  return dx * dx + dy * dy <= radius * radius;
-}
-
-mkdirSync(outDir, { recursive: true });
-for (const [name, size, maskable] of [
-  ['icon-192.png', 192, false],
-  ['icon-512.png', 512, false],
-  ['icon-maskable-512.png', 512, true],
-]) {
-  writeFileSync(resolve(outDir, name), png(size, drawIcon(size, { maskable })));
-  console.log(`[papfish] icon: ${name}`);
-}
+await browser.close();

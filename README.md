@@ -29,6 +29,7 @@ tracking, in an installable responsive web app.
 | Progress | Overall, White and Black mastery, per-opening mastery, weakest branches, training history |
 | PWA | Manifest, icons, service worker, installable, offline caching of static assets |
 | Navigation | Sidebar on desktop; on phones a single wheel in the corner that turns open into a bar of destinations, so eight tabs no longer crowd the bottom of the screen |
+| Identity | One drawing - a cartoon fish crossing a ship's wheel - used for the favicon, the app icons, the wordmark and the loading screens. Built from few enough shapes to survive at 16px, and rendered inline in `index.html` so the boot screen paints with no JavaScript at all |
 
 ## What Version 2 adds
 

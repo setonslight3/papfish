@@ -16,6 +16,7 @@ import { EnginePanel } from '@/components/EnginePanel';
 import { OpeningBadge } from '@/components/OpeningBadge';
 import { PopularityPanel } from '@/components/PopularityPanel';
 import { Badge, Button, EmptyState, Panel, ProgressBar, Select, Spinner } from '@/components/ui';
+import { PapfishLoader } from '@/components/brand';
 import { useEngineAnalysis } from '@/hooks/useEngineAnalysis';
 import { useOpeningIdentification } from '@/hooks/useOpeningBook';
 import { usePositionStats } from '@/hooks/usePositionStats';
@@ -155,9 +156,7 @@ export function TrainPage(): React.JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-slate-400">
-        <Spinner /> Loading your repertoires…
-      </div>
+      <PapfishLoader full={false} label="Loading your repertoires" />
     );
   }
 

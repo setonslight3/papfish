@@ -3,6 +3,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { classNames } from '@/lib/format';
 import { useSettings } from '@/settings/SettingsProvider';
 import { Badge, Button } from './ui';
+import { PapfishWordmark } from './brand';
 import { InstallPrompt } from './InstallPrompt';
 import { MahoragaWheel } from './MahoragaWheel';
 
@@ -85,15 +86,5 @@ export function AppShell(): React.JSX.Element {
 }
 
 function Brand({ compact = false }: { compact?: boolean }): React.JSX.Element {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-500 text-lg font-black text-slate-950">
-        P
-      </span>
-      <div>
-        <p className="text-base leading-tight font-bold text-slate-100">Papfish</p>
-        {!compact ? <p className="text-[11px] text-slate-500">Repertoire trainer</p> : null}
-      </div>
-    </div>
-  );
+  return <PapfishWordmark compact={compact} size={compact ? 34 : 40} />;
 }

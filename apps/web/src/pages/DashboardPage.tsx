@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { formatSanLine, reviewLoad, studyStreak, weakestPositions } from '@papfish/core';
-import { Badge, Button, EmptyState, Panel, ProgressBar, Spinner, StatTile } from '@/components/ui';
+import { Badge, Button, EmptyState, Panel, ProgressBar, StatTile } from '@/components/ui';
+import { PapfishLoader } from '@/components/brand';
 import { useAuth } from '@/auth/AuthProvider';
 import { useRepertoires } from '@/repertoire/RepertoireProvider';
 import { allCandidates, buildRepertoireViews, summarizeMastery } from '@/repertoire/selectors';
@@ -33,9 +34,7 @@ export function DashboardPage(): React.JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-slate-400">
-        <Spinner /> Loading your progress…
-      </div>
+      <PapfishLoader full={false} label="Loading your progress" />
     );
   }
 

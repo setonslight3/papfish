@@ -36,11 +36,50 @@ body {
   scrollbar-color: #334155 transparent;
 }
 
+/* Brand animation: the wheel turns while the fish rides in front of it. */
+@keyframes papfish-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes papfish-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes papfish-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.papfish-wheel-spin {
+  animation: papfish-spin 2.4s linear infinite;
+}
+
+.papfish-fish-bob {
+  animation: papfish-bob 1.8s ease-in-out infinite;
+}
+
+.papfish-loader-bar {
+  animation: papfish-sweep 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

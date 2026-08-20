@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui';
+import { PapfishMark } from '@/components/brand';
 import { ConnectionCheck } from '@/components/ConnectionCheck';
 import { useAuth } from '@/auth/AuthProvider';
 
@@ -21,9 +22,7 @@ export function AuthLayout({
     <div className="grid min-h-full place-items-center bg-slate-950 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-500 text-2xl font-black text-slate-950">
-            P
-          </span>
+          <PapfishMark size={76} plate="circle" className="mx-auto" title="Papfish" />
           <h1 className="mt-4 text-2xl font-bold text-slate-100">Papfish</h1>
           <p className="mt-1 text-sm text-slate-400">
             Explore openings, build a repertoire, train it against realistic opponents.

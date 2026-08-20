@@ -13,7 +13,8 @@ import {
   weakestPositions,
   weeklyImprovement,
 } from '@papfish/core';
-import { Badge, Panel, ProgressBar, Spinner, StatTile } from '@/components/ui';
+import { Badge, Panel, ProgressBar, StatTile } from '@/components/ui';
+import { PapfishLoader } from '@/components/brand';
 import { AccuracyTrend, MasteryDistribution, ReviewForecast } from '@/components/charts';
 import { useRepertoires } from '@/repertoire/RepertoireProvider';
 import { allCandidates, buildRepertoireViews, summarizeMastery } from '@/repertoire/selectors';
@@ -83,9 +84,7 @@ export function ProgressPage(): React.JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-slate-400">
-        <Spinner /> Loading progress…
-      </div>
+      <PapfishLoader full={false} label="Loading progress" />
     );
   }
 
