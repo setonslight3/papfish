@@ -8,7 +8,8 @@
     "stats": "tsx src/build-stats.ts",
     "upload": "tsx src/upload-stats.ts",
     "typecheck": "tsc --noEmit",
-    "verify:rls": "tsx src/verify-rls.ts"
+    "verify:rls": "tsx src/verify-rls.ts",
+    "verify:endgames": "tsx src/verify-endgames.ts"
   },
   "dependencies": {
     "@papfish/core": "*",

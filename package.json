@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "pipeline:openings": "npm run openings -w @papfish/pipeline",
     "pipeline:stats": "npm run stats -w @papfish/pipeline",
-    "verify:rls": "npm run verify:rls -w @papfish/pipeline"
+    "verify:rls": "npm run verify:rls -w @papfish/pipeline",
+    "verify:endgames": "npm run verify:endgames -w @papfish/pipeline"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

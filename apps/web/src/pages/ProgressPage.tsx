@@ -1,13 +1,17 @@
 import { useMemo } from 'react';
 import {
   accuracyByColor,
+  bookDepthTrend,
+  buildOpeningReport,
   dailyAccuracy,
   formatSanLine,
   masteryDistribution,
   reviewLoad,
+  sanPathTo,
   studyStreak,
   verdictBreakdown,
   weakestPositions,
+  weeklyImprovement,
 } from '@papfish/core';
 import { Badge, Panel, ProgressBar, Spinner, StatTile } from '@/components/ui';
 import { AccuracyTrend, MasteryDistribution, ReviewForecast } from '@/components/charts';
@@ -16,8 +20,17 @@ import { allCandidates, buildRepertoireViews, summarizeMastery } from '@/reperto
 import { formatDuration, formatRelativeTime } from '@/lib/format';
 
 /** Progress: mastery detail, split by colour and by opening. */
+function ReportStat({ label, value }: { label: string; value: string }): React.JSX.Element {
+  return (
+    <div className="rounded-lg bg-slate-800/50 px-2 py-1.5">
+      <p className="text-[10px] tracking-wide text-slate-400 uppercase">{label}</p>
+      <p className="text-sm font-semibold text-slate-100 tabular-nums">{value}</p>
+    </div>
+  );
+}
+
 export function ProgressPage(): React.JSX.Element {
-  const { repertoires, nodes, mastery, attempts, loading } = useRepertoires();
+  const { repertoires, nodes, mastery, attempts, games, gamePositions, loading } = useRepertoires();
 
   const views = useMemo(
     () => buildRepertoireViews(repertoires, nodes, mastery),
@@ -42,6 +55,25 @@ export function ProgressPage(): React.JSX.Element {
     () => masteryDistribution(mastery, Math.max(0, candidates.length - mastery.length)),
     [candidates.length, mastery],
   );
+
+  const reports = useMemo(
+    () =>
+      views.map((view) =>
+        buildOpeningReport({
+          repertoire: view.repertoire,
+          tree: view.tree,
+          mastery,
+          attempts,
+          games,
+          gamePositions,
+          pathFor: (nodeId) => sanPathTo(view.tree, nodeId),
+        }),
+      ),
+    [attempts, gamePositions, games, mastery, views],
+  );
+
+  const weekly = useMemo(() => weeklyImprovement(attempts, 8), [attempts]);
+  const bookDepth = useMemo(() => bookDepthTrend(games), [games]);
 
   const medianResponse = useMemo(() => {
     if (attempts.length === 0) return 0;
@@ -184,6 +216,120 @@ export function ProgressPage(): React.JSX.Element {
           )}
         </Panel>
       </div>
+
+      {reports.length > 0 ? (
+        <Panel title="Opening reports">
+          <ul className="space-y-4">
+            {reports.map((report) => (
+              <li key={report.repertoireId} className="rounded-lg border border-slate-800 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    {report.openingName ?? report.name}
+                  </h3>
+                  <Badge tone={report.color === 'white' ? 'neutral' : 'info'}>{report.color}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-slate-300">{report.headline}</p>
+
+                <div className="mt-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+                  <ReportStat label="Mastery" value={`${report.masteryScore}%`} />
+                  <ReportStat
+                    label="Trained"
+                    value={`${report.trainedPositions}/${report.trainablePositions}`}
+                  />
+                  <ReportStat
+                    label="Accuracy"
+                    value={report.trainingAccuracy === null ? '-' : `${report.trainingAccuracy}%`}
+                  />
+                  <ReportStat
+                    label="In book"
+                    value={
+                      report.averageInBookPlies === null
+                        ? 'no games'
+                        : `${report.averageInBookPlies} plies`
+                    }
+                  />
+                </div>
+
+                {report.weakest.length > 0 ? (
+                  <ul className="mt-3 space-y-1 border-t border-slate-800 pt-3">
+                    {report.weakest.map((line) => (
+                      <li key={`${report.repertoireId}-${line.sanPath.join('')}${line.moveSan}`} className="flex justify-between gap-3 text-xs">
+                        <span className="truncate text-slate-400">
+                          {line.sanPath.length > 0 ? formatSanLine(line.sanPath) : 'start'} →{' '}
+                          <span className="text-slate-200">{line.moveSan}</span>
+                        </span>
+                        <span className="shrink-0 text-slate-500 tabular-nums">
+                          {line.masteryScore}% · {line.attempts}x
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {report.games > 0 ? (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {report.games} imported game{report.games === 1 ? '' : 's'} ·{' '}
+                    {report.deviations} position{report.deviations === 1 ? '' : 's'} flagged from play
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
+
+      {weekly.some((week) => week.attempts > 0) ? (
+        <Panel title="Long-term trend">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs tracking-wide text-slate-400 uppercase">
+                Accuracy by week
+              </p>
+              <ul className="space-y-1.5">
+                {weekly.map((week) => (
+                  <li key={week.weekStart} className="flex items-center gap-2 text-xs">
+                    <span className="w-16 shrink-0 text-slate-500">
+                      {week.weekStart.slice(5)}
+                    </span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-sky-500"
+                        style={{ width: `${week.accuracy}%` }}
+                      />
+                    </div>
+                    <span className="w-16 shrink-0 text-right text-slate-400 tabular-nums">
+                      {week.attempts > 0 ? `${week.accuracy}%` : '-'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs tracking-wide text-slate-400 uppercase">
+                How deep your games stayed in book
+              </p>
+              {bookDepth.length === 0 ? (
+                <p className="text-sm text-slate-500">Import games to see this.</p>
+              ) : (
+                <div className="flex h-24 items-end gap-1">
+                  {bookDepth.map((depth, index) => (
+                    <div
+                      key={index}
+                      className="flex-1 rounded-t bg-cyan-700"
+                      style={{ height: `${Math.max(4, (depth / Math.max(...bookDepth, 1)) * 100)}%` }}
+                      title={`${depth} plies`}
+                    />
+                  ))}
+                </div>
+              )}
+              <p className="mt-2 text-[11px] text-slate-500">
+                Oldest to newest. Rising bars mean your preparation is holding up longer.
+              </p>
+            </div>
+          </div>
+        </Panel>
+      ) : null}
 
       <Panel title="Training history">
         {attempts.length === 0 ? (

@@ -16,3 +16,6 @@ export * from './pgn.js';
 export * from './game-analysis.js';
 export * from './drills.js';
 export * from './statistics.js';
+export * from './endgames.js';
+export * from './reports.js';
+export * from './swing.js';

@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { Color } from '@papfish/core';
-import { RATING_BUCKETS, TIME_CONTROLS, formatSanLine } from '@papfish/core';
+import { RATING_BUCKETS, TIME_CONTROLS, formatSanLine, uciToSan } from '@papfish/core';
 import { Board } from '@/components/Board';
 import { BoardControls } from '@/components/BoardControls';
 import { EnginePanel, EvalBar } from '@/components/EnginePanel';
 import { MoveList } from '@/components/MoveList';
 import { OpeningBadge } from '@/components/OpeningBadge';
 import { PopularityPanel } from '@/components/PopularityPanel';
+import { MasterComparison } from '@/components/MasterComparison';
 import { Badge, Button, ErrorNote, Panel, Select } from '@/components/ui';
 import { useChessGame } from '@/hooks/useChessGame';
 import { useEngineAnalysis } from '@/hooks/useEngineAnalysis';
@@ -26,6 +27,7 @@ export function ExplorePage(): React.JSX.Element {
   const { repertoires, nodes, addMove } = useRepertoires();
 
   const [orientation, setOrientation] = useState<Color>('white');
+  const [showMasters, setShowMasters] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -35,6 +37,13 @@ export function ExplorePage(): React.JSX.Element {
     game.fen,
     settings.ratingBucket,
     settings.timeControl,
+  );
+  // The master database is a separate population, fetched only when asked for.
+  const masterStats = usePositionStats(
+    showMasters ? game.fen : null,
+    'masters',
+    'all',
+    showMasters,
   );
   const { analysis, analyzing, error: engineError } = useEngineAnalysis(game.fen, {
     enabled: settings.engineEnabled,
@@ -189,6 +198,35 @@ export function ExplorePage(): React.JSX.Element {
                 game.play(san);
               }}
             />
+          </Panel>
+
+          <Panel
+            title="Masters vs your level"
+            actions={
+              <Button
+                variant="ghost"
+                className="px-2 py-1 text-xs"
+                onClick={() => setShowMasters((value) => !value)}
+              >
+                {showMasters ? 'Hide' : 'Compare'}
+              </Button>
+            }
+          >
+            {showMasters ? (
+              <MasterComparison
+                club={stats}
+                masters={masterStats.stats}
+                loading={masterStats.loading}
+                ratingBucket={settings.ratingBucket}
+                engineBest={
+                  analysis?.bestMove ? (uciToSan(game.fen, analysis.bestMove) ?? null) : null
+                }
+              />
+            ) : (
+              <p className="text-sm text-slate-500">
+                See how master practice differs from play at your rating in this exact position.
+              </p>
+            )}
           </Panel>
 
           <Panel

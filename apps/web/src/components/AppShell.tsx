@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/repertoires', label: 'Repertoires', icon: '⑂' },
   { to: '/train', label: 'Train', icon: '◎' },
   { to: '/games', label: 'Games', icon: '⧉' },
+  { to: '/endgames', label: 'Endgames', icon: '♚' },
   { to: '/progress', label: 'Progress', icon: '◔' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ];

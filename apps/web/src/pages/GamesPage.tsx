@@ -1,9 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ImportedGameRecord, PersonalGamePositionRecord } from '@papfish/core';
-import { formatSanLine } from '@papfish/core';
+import type { CriticalMoment } from '@papfish/core';
+import { SWING_LABELS, formatSanLine } from '@papfish/core';
 import { Badge, Button, EmptyState, ErrorNote, Panel, Spinner, TextInput } from '@/components/ui';
 import { useAuth } from '@/auth/AuthProvider';
+import { useEngine } from '@/engine/EngineProvider';
+import { getRepository } from '@/data';
+import { analyseImportedGame } from '@/services/gameAnalysis';
 import { useRepertoires } from '@/repertoire/RepertoireProvider';
 import { gameOpeningLabel } from '@/repertoire/gameImport';
 import { formatRelativeTime } from '@/lib/format';
@@ -24,8 +28,15 @@ const RESULT_LABEL: Record<string, string> = {
  */
 export function GamesPage(): React.JSX.Element {
   const { user } = useAuth();
-  const { games, gamePositions, repertoires, importGames, deleteGame, loading } = useRepertoires();
+  const { games, gamePositions, repertoires, importGames, deleteGame, refresh, loading } =
+    useRepertoires();
+  const { engine } = useEngine();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [analysing, setAnalysing] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
+  const [moments, setMoments] = useState<Record<string, CriticalMoment[]>>({});
 
   const [pgn, setPgn] = useState('');
   const [aliases, setAliases] = useState(
@@ -83,6 +94,27 @@ export function GamesPage(): React.JSX.Element {
       setError(cause instanceof Error ? cause.message : 'Could not import those games');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleAnalyse = async (gameId: string) => {
+    const game = games.find((item) => item.id === gameId);
+    if (!game || !user) return;
+
+    setAnalysing(gameId);
+    setAnalysisProgress({ done: 0, total: 1 });
+    setError(null);
+    try {
+      const result = await analyseImportedGame(engine, getRepository(), user.id, game, {
+        onProgress: (done, total) => setAnalysisProgress({ done, total }),
+      });
+      setMoments((current) => ({ ...current, [gameId]: result.moments }));
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not analyse that game');
+    } finally {
+      setAnalysing(null);
+      setAnalysisProgress(null);
     }
   };
 
@@ -212,6 +244,10 @@ export function GamesPage(): React.JSX.Element {
                 expanded={expanded === game.id}
                 onToggle={() => setExpanded(expanded === game.id ? null : game.id)}
                 onDelete={() => deleteGame(game.id)}
+                onAnalyse={() => handleAnalyse(game.id)}
+                analysing={analysing === game.id}
+                progress={analysing === game.id ? analysisProgress : null}
+                moments={moments[game.id] ?? null}
               />
             ))}
           </ul>
@@ -227,12 +263,20 @@ function GameRow({
   expanded,
   onToggle,
   onDelete,
+  onAnalyse,
+  analysing,
+  progress,
+  moments,
 }: {
   game: ImportedGameRecord;
   positions: PersonalGamePositionRecord[];
   expanded: boolean;
   onToggle: () => void;
   onDelete: () => Promise<void>;
+  onAnalyse: () => Promise<void>;
+  analysing: boolean;
+  progress: { done: number; total: number } | null;
+  moments: CriticalMoment[] | null;
 }): React.JSX.Element {
   const deviations = positions.filter((position) => position.note);
   const opponent = game.userColor === 'white' ? game.blackPlayer : game.whitePlayer;
@@ -287,9 +331,48 @@ function GameRow({
             </ul>
           )}
 
+          {moments && moments.length > 0 ? (
+            <div className="space-y-2 border-t border-slate-800 pt-3">
+              <p className="text-xs tracking-wide text-slate-400 uppercase">
+                Engine review - your worst moments
+              </p>
+              <ul className="space-y-1.5">
+                {moments.map((moment) => (
+                  <li key={moment.ply} className="text-sm">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <Badge tone={moment.swing.severity === 'blunder' ? 'danger' : 'warning'}>
+                        {SWING_LABELS[moment.swing.severity]}
+                      </Badge>
+                      <span className="text-slate-300">
+                        move {Math.ceil(moment.ply / 2)}: {moment.movePlayed}
+                        {moment.bestMove ? ` · engine prefers ${moment.bestMove}` : ''}
+                      </span>
+                      <span className="text-xs text-slate-500 tabular-nums">
+                        -{moment.swing.winChanceDrop}%
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {moments && moments.length === 0 ? (
+            <p className="border-t border-slate-800 pt-3 text-sm text-emerald-300">
+              The engine found nothing serious in your moves here.
+            </p>
+          ) : null}
+
           <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={onAnalyse} disabled={analysing}>
+              {analysing
+                ? `Analysing ${progress ? `${progress.done}/${progress.total}` : ''}…`
+                : moments
+                  ? 'Analyse again'
+                  : 'Analyse with the engine'}
+            </Button>
             <Link to="/explore">
-              <Button variant="secondary">Open Explore</Button>
+              <Button variant="ghost">Open Explore</Button>
             </Link>
             <Button variant="ghost" onClick={onDelete}>
               Remove game

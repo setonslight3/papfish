@@ -9,7 +9,7 @@ Papfish combines human opening popularity, rating-specific move tendencies,
 Stockfish, a personal branching repertoire, and position-level mastery
 tracking, in an installable responsive web app.
 
-**Status: Version 2 complete.** See [Roadmap](#roadmap).
+**Status: Version 3 complete.** See [Roadmap](#roadmap).
 
 ---
 
@@ -41,6 +41,17 @@ tracking, in an installable responsive web app.
 | Personal-game analysis | Where you left your own repertoire, where the opponent left it, and how deep each game stayed in book |
 | Recommendations | Positions you keep reaching or keep getting wrong, ranked - imports never rewrite your repertoire |
 | Statistics | Accuracy trend, review forecast, mastery distribution, verdict breakdown, colour split, study streak |
+
+## What Version 3 adds
+
+| Area | What you get |
+| --- | --- |
+| Endgame training | Eight theoretically decided positions - basic mates, Lucena, Philidor, opposition, wrong bishop, queen v pawn - played out against a full-strength engine, graded on the goal rather than a solution line |
+| Tablebase verdicts | Syzygy lookups (via Lichess) judge endgame moves where they are authoritative: "that gives away the win" is a fact, not an opinion. Degrades silently when offline |
+| Master comparison | Master practice against play at your rating in the same position, with the gaps called out - and the engine's pick kept visibly separate from popularity |
+| Engine game review | Runs over your own moves in an imported game and ranks your worst decisions by winning chances given away, not raw centipawns |
+| Opening reports | Per-opening: mastery, coverage, training accuracy, how deep your real games stayed in book, weakest lines, and a plain-English headline |
+| Long-term analytics | Accuracy by week and book depth across your imported games, so improvement is visible over months rather than sessions |
 
 ---
 
@@ -127,10 +138,17 @@ popularity, and never presents an engine evaluation as popularity.
 ## Testing
 
 ```bash
-npm test          # 210 tests: domain logic, storage, auth, engine, UI flows
+npm test          # 245 tests: domain logic, storage, auth, engine, UI flows
 npm run typecheck # strict TypeScript across all three workspaces
 npm run lint      # ESLint incl. React hooks rules
 npm run build     # type-check + production build + service worker
+```
+
+The endgame catalogue is verified against Stockfish itself - every position is
+checked to be legal and to actually be won or drawn as claimed:
+
+```bash
+npm run verify:endgames
 ```
 
 Against a real Supabase project you can additionally prove user isolation:
@@ -169,11 +187,16 @@ cross-origin isolation headers are required.
 
 - **Version 1 - Core opening trainer.** Complete.
 - **Version 2 - Adaptive personal training.** Complete.
-- **Version 3 - Advanced platform.** Master-game comparison, middlegame and
-  endgame training, deeper analytics.
+- **Version 3 - Advanced platform.** Complete.
 
-Version boundaries are deliberate: each version is finished and tested before
-the next begins.
+Version boundaries were deliberate: each version was finished and tested
+before the next began.
+
+Deliberately **not** built, because nothing in the product justifies them yet:
+a curated tactics database (the engine review over your own games covers the
+same ground with material you actually played), opponent personalities beyond
+the rating-band model, and cloud-side engine analysis - the local worker is
+fast enough for everything here.
 
 ---
 
