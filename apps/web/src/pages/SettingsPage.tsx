@@ -187,6 +187,21 @@ export function SettingsPage(): React.JSX.Element {
               Show board coordinates
             </label>
 
+            <Field
+              label="Wheel menu direction"
+              hint="On phones, which way the navigation bar extends from the wheel. Upward has room for labels; sideways keeps it in the thumb's reach."
+            >
+              <Select
+                value={settings.navDirection}
+                onChange={(event) =>
+                  update({ navDirection: event.target.value as 'vertical' | 'horizontal' })
+                }
+              >
+                <option value="vertical">Upward</option>
+                <option value="horizontal">Sideways</option>
+              </Select>
+            </Field>
+
             <div className="space-y-1 text-xs text-slate-500">
               <p>
                 Storage backend: <Badge tone={backend === 'supabase' ? 'success' : 'warning'}>{backend}</Badge>

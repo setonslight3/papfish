@@ -28,6 +28,7 @@ tracking, in an installable responsive web app.
 | Opponents | Human-pattern opponent (popularity, top-1/3/5/weighted) **or** Stockfish - never blended |
 | Progress | Overall, White and Black mastery, per-opening mastery, weakest branches, training history |
 | PWA | Manifest, icons, service worker, installable, offline caching of static assets |
+| Navigation | Sidebar on desktop; on phones a single wheel in the corner that turns open into a bar of destinations, so eight tabs no longer crowd the bottom of the screen |
 
 ## What Version 2 adds
 

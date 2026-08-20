@@ -1,8 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { classNames } from '@/lib/format';
+import { useSettings } from '@/settings/SettingsProvider';
 import { Badge, Button } from './ui';
 import { InstallPrompt } from './InstallPrompt';
+import { MahoragaWheel } from './MahoragaWheel';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '◫' },
@@ -15,9 +17,14 @@ const NAV_ITEMS = [
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
-/** Responsive frame: sidebar on desktop, bottom tab bar on phones. */
+/**
+ * Responsive frame: a sidebar on desktop, and on phones a single wheel instead
+ * of a row of tabs - eight destinations no longer have to share the bottom of
+ * a small screen.
+ */
 export function AppShell(): React.JSX.Element {
   const { user, signOut, backend } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -65,30 +72,14 @@ export function AppShell(): React.JSX.Element {
         </div>
       </header>
 
-      <main className="flex-1 pb-20 lg:pb-0">
+      <main className="flex-1 pb-28 lg:pb-0">
         <div className="mx-auto w-full max-w-6xl p-4 lg:p-6">
           <InstallPrompt />
           <Outlet />
         </div>
       </main>
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-slate-800 bg-slate-900/95 backdrop-blur lg:hidden">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              classNames(
-                'flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium transition',
-                isActive ? 'text-sky-300' : 'text-slate-500',
-              )
-            }
-          >
-            <span aria-hidden className="text-lg leading-none">{item.icon}</span>
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+      <MahoragaWheel items={NAV_ITEMS} direction={settings.navDirection} />
     </div>
   );
 }

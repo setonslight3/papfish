@@ -21,6 +21,8 @@ export interface Settings {
   boardOrientation: Color | 'auto';
   showCoordinates: boolean;
   trainingSessionSize: number;
+  /** Which way the wheel's navigation bar extends on phones. */
+  navDirection: 'vertical' | 'horizontal';
 }
 
 const DEFAULTS: Settings = {
@@ -34,6 +36,7 @@ const DEFAULTS: Settings = {
   boardOrientation: 'auto',
   showCoordinates: true,
   trainingSessionSize: 10,
+  navDirection: 'vertical',
 };
 
 const STORAGE_KEY = 'papfish:settings';
