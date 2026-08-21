@@ -17,4 +17,6 @@ export interface AuthAdapter {
   signUp(email: string, password: string, displayName: string): Promise<SignUpResult>;
   signIn(email: string, password: string): Promise<AuthUser>;
   signOut(): Promise<void>;
+  /** Only meaningful where accounts are confirmed by email. */
+  resendConfirmation?(email: string): Promise<void>;
 }

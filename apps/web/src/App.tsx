@@ -7,6 +7,7 @@ import { AppShell } from '@/components/AppShell';
 import { PapfishLoader } from '@/components/brand';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ExplorePage } from '@/pages/ExplorePage';
 import { RepertoiresPage } from '@/pages/RepertoiresPage';
@@ -48,6 +49,9 @@ export function App(): React.JSX.Element {
           <Routes>
             <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
             <Route path="/register" element={<PublicOnly><RegisterPage /></PublicOnly>} />
+            {/* Not behind PublicOnly: the callback has to complete its exchange
+                before anything decides where the visitor belongs. */}
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route element={<ProtectedArea />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/explore" element={<ExplorePage />} />

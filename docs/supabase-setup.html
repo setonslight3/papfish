@@ -814,10 +814,29 @@ create policy "game positions are deletable by their owner"
           <li><strong>Off</strong> &mdash; registering signs you straight in. Much easier while you are testing on your phone.</li>
         </ul>
         <p>
-          Then open <strong>Authentication &rarr; URL Configuration</strong> and set
-          <em>Site URL</em> to your Vercel address once you have it, adding the same
-          address under <em>Redirect URLs</em>. Skip this and confirmation links will
-          point at localhost.
+          Then open <strong>Authentication &rarr; URL Configuration</strong>. A new
+          project ships with <em>Site URL</em> set to <code>http://localhost:3000</code>,
+          and that is where every confirmation link points until you change it &mdash; so
+          someone registering on the live site is mailed a link to a dead address on
+          their own machine.
+        </p>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">authentication &rarr; url configuration</span>
+            <button class="copy" type="button" data-target="urls">Copy</button>
+          </div>
+          <pre id="urls">Site URL
+  https://papfish-web.vercel.app
+
+Redirect URLs
+  https://papfish-web.vercel.app/auth/callback
+  http://localhost:5173/auth/callback</pre>
+        </div>
+        <p>
+          Swap in your own domain. Papfish asks Supabase to return people to
+          <code>/auth/callback</code> on whichever origin they registered from, but
+          Supabase only honours an address listed under <em>Redirect URLs</em> &mdash;
+          anything else falls back to <em>Site URL</em>.
         </p>
       </div>
     </article>

@@ -23,9 +23,20 @@ Do Supabase first - the app needs its URL and anon key at build time.
      link before they can sign in.
    - Turn it **off** if you want to sign in immediately after registering,
      which is convenient while you are testing.
-5. **Authentication → URL Configuration**: set *Site URL* to your Vercel domain
-   once you have it (e.g. `https://papfish.vercel.app`) and add it to
-   *Redirect URLs*. Without this, confirmation links point at localhost.
+5. **Authentication → URL Configuration** - this one is not optional if you
+   leave *Confirm email* on. A new project ships with *Site URL* set to
+   `http://localhost:3000`, and that is where every confirmation link points
+   until you change it, so people who register on the live site are sent to a
+   dead address on their own machine.
+
+   - *Site URL*: your deployed address, e.g. `https://papfish-web.vercel.app`
+   - *Redirect URLs*: add `https://papfish-web.vercel.app/auth/callback`, and
+     `http://localhost:5173/auth/callback` if you develop locally. For Vercel
+     preview builds, add `https://*-your-team.vercel.app/auth/callback`.
+
+   Papfish asks Supabase to return people to `/auth/callback` on whichever
+   origin they registered from, but Supabase only honours an address that
+   appears in *Redirect URLs* - otherwise it falls back to *Site URL*.
 6. Copy from **Project Settings → API**:
    - *Project URL* → `VITE_SUPABASE_URL`
    - *anon / public* key → `VITE_SUPABASE_ANON_KEY`

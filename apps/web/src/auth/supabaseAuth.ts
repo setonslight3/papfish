@@ -2,6 +2,21 @@ import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { describeBackendError } from '@/lib/errors';
 import type { AuthAdapter, AuthUser, SignUpResult } from './types';
 
+/**
+ * Where a confirmation link should land.
+ *
+ * Without this, Supabase falls back to the project's Site URL, which starts
+ * life as http://localhost:3000 - so a link mailed from production sends
+ * people to a dead address on their own machine. Deriving it from the running
+ * page means the same build works on localhost, on a preview deployment and on
+ * the real domain, provided each origin is listed under Redirect URLs in the
+ * Supabase dashboard.
+ */
+export function emailRedirectTo(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return `${window.location.origin}/auth/callback`;
+}
+
 function toUser(user: User | null | undefined): AuthUser | null {
   if (!user) return null;
   return {
@@ -33,7 +48,7 @@ export class SupabaseAuthAdapter implements AuthAdapter {
     const { data, error } = await this.supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: { data: { display_name: displayName }, emailRedirectTo: emailRedirectTo() },
     });
     if (error) throw new Error(describeBackendError(error, 'Could not create the account'));
     return {
@@ -48,6 +63,16 @@ export class SupabaseAuthAdapter implements AuthAdapter {
     const user = toUser(data.user);
     if (!user) throw new Error('Sign in failed');
     return user;
+  }
+
+  /** Send a fresh confirmation email, for links that expired before use. */
+  async resendConfirmation(email: string): Promise<void> {
+    const { error } = await this.supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: emailRedirectTo() },
+    });
+    if (error) throw new Error(describeBackendError(error, 'Could not send a new link'));
   }
 
   async signOut(): Promise<void> {
